@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { ArrowRight, Sparkles, ShieldCheck, CheckCircle, Compass, Lightbulb } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
 import { AnalysisResult } from "../types";
 
 interface HeroProps {
@@ -27,7 +26,7 @@ interface SlideItem {
 
 const SLIDES: SlideItem[] = [
   {
-    image: "/src/assets/images/female_developer_split_1779635078522.png",
+    image: "/images/female_developer_split_1779635078522.png",
     leftLabel: "Uncertain Junior",
     rightLabel: "Systems Architect",
     recruiterPerception: "Technical ownership maps directly to modern engineering velocity metrics. Removing task list descriptions increases profile trust and strategic visibility.",
@@ -43,7 +42,7 @@ const SLIDES: SlideItem[] = [
     scoreBoost: 22
   },
   {
-    image: "/src/assets/images/male_leader_split_1779635118718.png",
+    image: "/images/male_leader_split_1779635118718.png",
     leftLabel: "Task Operator",
     rightLabel: "Growth Director",
     recruiterPerception: "Relational metrics elevate leadership presence for enterprise recruiters, re-anchoring historical tasks into active business team growth sponsorship.",
@@ -59,7 +58,7 @@ const SLIDES: SlideItem[] = [
     scoreBoost: 18
   },
   {
-    image: "/src/assets/images/female_designer_split_1779635098841.png",
+    image: "/images/female_designer_split_1779635098841.png",
     leftLabel: "Aesthetic Executor",
     rightLabel: "Lead Architect",
     recruiterPerception: "Strategic design summaries elevate creative oversight and cross-functional leadership, replacing task-centric listings with product ownership metrics.",
@@ -75,7 +74,7 @@ const SLIDES: SlideItem[] = [
     scoreBoost: 24
   },
   {
-    image: "/src/assets/images/professional_split_portrait_1779515079465.png",
+    image: "/images/professional_split_portrait_1779515079465.png",
     leftLabel: "Executor Draft",
     rightLabel: "Strategic Sponsor",
     recruiterPerception: "Presenting accomplishments with quiet confidence removes immediate reading fatigue, elevating your perception from local 'Executor' to 'Strategic Sponsor'.",
@@ -93,31 +92,59 @@ const SLIDES: SlideItem[] = [
 ];
 
 export default function Hero({ onCtaClick, activeResult }: HeroProps) {
+  const [mounted, setMounted] = useState(false);
   const [activeMockTab, setActiveMockTab] = useState<"recruiter" | "ats" | "growth">("recruiter");
   const [sliderVal, setSliderVal] = useState<number>(50);
   const [currentSlideIdx, setCurrentSlideIdx] = useState<number>(0);
   const [hasInteracted, setHasInteracted] = useState<boolean>(false);
-  const autoRotateTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [preloadStatus, setPreloadStatus] = useState<Record<string, string>>({});
 
-  // Manage auto-rotation of slides
+  // Client-side hydration check & visual preloading
   useEffect(() => {
-    if (activeResult) {
-      if (autoRotateTimerRef.current) {
-        clearInterval(autoRotateTimerRef.current);
-      }
-      return;
-    }
+    setMounted(true);
+    console.log("[DIAGNOSTIC] Hero component has mounted in production environment. mounted = true");
 
-    autoRotateTimerRef.current = setInterval(() => {
-      setCurrentSlideIdx((prev) => (prev + 1) % SLIDES.length);
-    }, 4500);
+    // Preload all visuals before rendering to prevent blank frames
+    const visualPaths = [
+      "/images/female_developer_split_1779635078522.png",
+      "/images/male_leader_split_1779635118718.png",
+      "/images/female_designer_split_1779635098841.png",
+      "/images/professional_split_portrait_1779515079465.png"
+    ];
+
+    visualPaths.forEach((path) => {
+      console.log(`[DIAGNOSTIC] Preloading path: ${path}`);
+      const img = new Image();
+      img.src = path;
+      img.onload = () => {
+        console.log(`[DIAGNOSTIC] Preloaded image successfully: ${path}`);
+        setPreloadStatus((prev) => ({ ...prev, [path]: "SUCCESS" }));
+      };
+      img.onerror = () => {
+        console.error(`[DIAGNOSTIC] Failed to preload image: ${path}`);
+        setPreloadStatus((prev) => ({ ...prev, [path]: "FAILED" }));
+      };
+    });
+  }, []);
+
+  // Stable carousel rotation
+  useEffect(() => {
+    if (!mounted || activeResult) return;
+
+    console.log(`[DIAGNOSTIC] Spinning up stable interval rotation. Initial index: ${currentSlideIdx}`);
+    const interval = setInterval(() => {
+      setCurrentSlideIdx((prev) => {
+        const nextIdx = (prev + 1) % SLIDES.length;
+        console.log(`[DIAGNOSTIC] Rotation interval triggered. Current index: ${nextIdx}`);
+        return nextIdx;
+      });
+    }, 5000);
 
     return () => {
-      if (autoRotateTimerRef.current) {
-        clearInterval(autoRotateTimerRef.current);
-      }
+      console.log("[DIAGNOSTIC] Cleaning up rotation interval");
+      clearInterval(interval);
     };
-  }, [activeResult]);
+  }, [mounted, activeResult]);
 
   // Handle manual interaction tracking
   const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -125,10 +152,15 @@ export default function Hero({ onCtaClick, activeResult }: HeroProps) {
     setHasInteracted(true);
   };
 
-  // Extract variables depending on selection state
+  // If not mounted, prevent hydration mismatches completely
+  if (!mounted) {
+    console.log("[DIAGNOSTIC] Protection activated: null rendered before hydration finish.");
+    return null;
+  }
+
   const isAnalyzed = !!activeResult;
   
-  // Choose or compute active slide asset
+  // Compute active slide assets dynamically
   let currentSlide: SlideItem;
   if (isAnalyzed && activeResult) {
     // Map dynamically based on parsed factors
@@ -137,43 +169,43 @@ export default function Hero({ onCtaClick, activeResult }: HeroProps) {
     const level = activeResult.detectedLevel || "experienced";
     const roleName = activeResult.detectedRoleName || "Impact Aligned Professional";
 
-    // Matching locator
-    let matchedImg = "/src/assets/images/professional_split_portrait_1779515079465.png";
+    // Matching locator using gender-aware logic
+    let matchedImg = "/images/professional_split_portrait_1779515079465.png";
     let leftLabel = "Draft Form";
     let rightLabel = "Reframed Mastery";
 
     if (gender === "female") {
       if (field === "designer") {
-        matchedImg = "/src/assets/images/female_designer_split_1779635098841.png";
+        matchedImg = "/images/female_designer_split_1779635098841.png";
         leftLabel = "Casual Creator";
         rightLabel = "Product Designer";
       } else {
-        matchedImg = "/src/assets/images/female_developer_split_1779635078522.png";
+        matchedImg = "/images/female_developer_split_1779635078522.png";
         leftLabel = "Task Assistant";
         rightLabel = "Systems Builder";
       }
     } else if (gender === "male") {
       if (field === "marketing" || field === "management" || field === "general") {
-        matchedImg = "/src/assets/images/male_leader_split_1779635118718.png";
-        leftLabel = "Task operator";
+        matchedImg = "/images/male_leader_split_1779635118718.png";
+        leftLabel = "Task Operator";
         rightLabel = "Tactical Strategist";
       } else {
-        matchedImg = "/src/assets/images/professional_split_portrait_1779515079465.png";
+        matchedImg = "/images/professional_split_portrait_1779515079465.png";
         leftLabel = "Local Executor";
         rightLabel = "Engineering Lead";
       }
     } else {
       // neutral defaults
       if (field === "designer") {
-        matchedImg = "/src/assets/images/female_designer_split_1779635098841.png";
+        matchedImg = "/images/female_designer_split_1779635098841.png";
         leftLabel = "Aesthetic Executor";
         rightLabel = "Interface Architect";
       } else if (field === "marketing" || field === "management") {
-        matchedImg = "/src/assets/images/male_leader_split_1779635118718.png";
+        matchedImg = "/images/male_leader_split_1779635118718.png";
         leftLabel = "Task Operator";
         rightLabel = "Core Manager";
       } else {
-        matchedImg = "/src/assets/images/female_developer_split_1779635078522.png";
+        matchedImg = "/images/female_developer_split_1779635078522.png";
         leftLabel = "Standard Dev";
         rightLabel = "Technical Lead";
       }
@@ -336,27 +368,65 @@ export default function Hero({ onCtaClick, activeResult }: HeroProps) {
 
               {/* Cinematic Split Portrait Display */}
               <div className="relative w-full aspect-[21/10] sm:aspect-[16/8] rounded-2xl overflow-hidden bg-zinc-900 border border-white/5 group">
-                <AnimatePresence mode="popLayout">
-                  <motion.div
-                    key={currentSlide.image}
-                    initial={{ opacity: 0, scale: 0.98, filter: "blur(10px) saturate(0.5)" }}
-                    animate={{ opacity: 1, scale: 1, filter: "blur(0px) saturate(1)" }}
-                    exit={{ opacity: 0, scale: 1.02, filter: "blur(10px) saturate(0.5)" }}
-                    transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1] }}
-                    className="absolute inset-0 w-full h-full"
+                
+                {/* Visual rotation with stable opacity cross-fade logic (Indestructible in Production) */}
+                {SLIDES.map((slide, idx) => {
+                  const isSlideActive = !isAnalyzed && idx === currentSlideIdx;
+                  const isAnalyzedActive = isAnalyzed && currentSlide.image === slide.image;
+                  const isVisible = isAnalyzed ? isAnalyzedActive : isSlideActive;
+
+                  return (
+                    <div
+                      key={slide.image}
+                      className="absolute inset-0 w-full h-full transition-opacity duration-[850ms] ease-in-out"
+                      style={{
+                        opacity: isVisible ? 1 : 0,
+                        zIndex: isVisible ? 10 : 0,
+                        pointerEvents: isVisible ? "auto" : "none"
+                      }}
+                    >
+                      <img 
+                        src={slide.image} 
+                        alt="Aspirational Professional Transformation split screen view" 
+                        className="w-full h-full object-cover select-none"
+                        referrerPolicy="no-referrer"
+                        onLoad={() => console.log(`[DIAGNOSTIC] Successfully rendered Slide Image: ${slide.image}`)}
+                        onError={(e) => {
+                          console.error(`[DIAGNOSTIC] Image fail. Loading fallback for: ${slide.image}`);
+                          (e.currentTarget as HTMLImageElement).src = "/images/professional_split_portrait_1779515079465.png";
+                        }}
+                      />
+                    </div>
+                  );
+                })}
+
+                {/* Specific active dynamic fallback for exceptional analyzed cases */}
+                {isAnalyzed && ![
+                  "/images/female_developer_split_1779635078522.png",
+                  "/images/male_leader_split_1779635118718.png",
+                  "/images/female_designer_split_1779635098841.png",
+                  "/images/professional_split_portrait_1779515079465.png"
+                ].includes(currentSlide.image) && (
+                  <div
+                    className="absolute inset-0 w-full h-full z-10 transition-opacity duration-[850ms] ease-in-out"
+                    style={{ opacity: 1 }}
                   >
                     <img 
                       src={currentSlide.image} 
-                      alt="Aspirational Professional Transformation split screen view" 
+                      alt="Aspirational Professional Custom Profile" 
                       className="w-full h-full object-cover select-none"
                       referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        console.error(`[DIAGNOSTIC] Custom Image Load Failure: ${currentSlide.image}`);
+                        (e.currentTarget as HTMLImageElement).src = "/images/professional_split_portrait_1779515079465.png";
+                      }}
                     />
-                  </motion.div>
-                </AnimatePresence>
+                  </div>
+                )}
 
                 {/* Subdued overlay label boxes */}
-                <div className="absolute inset-x-0 bottom-4 px-4 flex justify-between pointer-events-none select-none z-10 font-sans">
-                  <span className="px-2.5 py-1 rounded-lg bg-black/85 border border-white/5 text-[9px] uppercase tracking-wider font-mono text-zinc-450 text-zinc-350 backdrop-blur-sm shadow-md">
+                <div className="absolute inset-x-0 bottom-4 px-4 flex justify-between pointer-events-none select-none z-30 font-sans">
+                  <span className="px-2.5 py-1 rounded-lg bg-black/85 border border-white/5 text-[9px] uppercase tracking-wider font-mono text-zinc-350 backdrop-blur-sm shadow-md">
                     {currentSlide.leftLabel}
                   </span>
                   <span className="px-2.5 py-1 rounded-lg bg-indigo-950/90 border border-indigo-500/20 text-[9px] uppercase tracking-wider font-mono text-indigo-300 backdrop-blur-sm shadow-md">
@@ -366,12 +436,12 @@ export default function Hero({ onCtaClick, activeResult }: HeroProps) {
 
                 {/* Vertical Swipe Divider Handle */}
                 <div 
-                  className="absolute inset-y-0 right-0 bg-indigo-500/[0.015] border-l border-white/10 backdrop-blur-[0.2px] pointer-events-none transition-all duration-300" 
+                  className="absolute inset-y-0 right-0 bg-indigo-500/[0.015] border-l border-white/10 backdrop-blur-[0.2px] pointer-events-none transition-all duration-305 z-20" 
                   style={{ left: `${sliderVal}%` }}
                 />
 
                 <div 
-                  className="absolute inset-y-0 w-[1px] bg-gradient-to-b from-indigo-300/40 via-indigo-500/80 to-indigo-300/40 pointer-events-none z-10"
+                  className="absolute inset-y-0 w-[1px] bg-gradient-to-b from-indigo-300/40 via-indigo-500/80 to-indigo-300/40 pointer-events-none z-20"
                   style={{ left: `${sliderVal}%` }}
                 >
                   <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-zinc-950 border border-indigo-400/40 shadow-[0_0_15px_rgba(99,102,241,0.3)] flex items-center justify-center">
@@ -385,25 +455,19 @@ export default function Hero({ onCtaClick, activeResult }: HeroProps) {
                   max="95" 
                   value={sliderVal} 
                   onChange={handleSliderChange}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-ew-resize z-20"
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-ew-resize z-40"
                 />
               </div>
 
               {/* Dynamic Insight text box */}
               <div className="flex flex-col gap-4 text-left">
                 <div className="min-h-[60px] flex items-center">
-                  <AnimatePresence mode="wait">
-                    <motion.p
-                      key={`${currentSlide.image}_${activeMockTab}`}
-                      initial={{ opacity: 0, y: 4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -4 }}
-                      transition={{ duration: 0.3, ease: "easeOut" }}
-                      className="text-zinc-400 text-xs sm:text-[13px] leading-relaxed font-sans font-light w-full"
-                    >
-                      "{activeTabText}"
-                    </motion.p>
-                  </AnimatePresence>
+                  <p
+                    key={`${currentSlide.image}_${activeMockTab}`}
+                    className="text-zinc-400 text-xs sm:text-[13px] leading-relaxed font-sans font-light w-full transition-opacity duration-300 animate-fadeIn"
+                  >
+                    "{activeTabText}"
+                  </p>
                 </div>
 
                 {/* Score tracker index */}

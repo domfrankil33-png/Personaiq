@@ -1393,26 +1393,26 @@ The candidate commits to present only authentic, original, and true historic eve
   const profileGender = activeAnalysis?.detectedGender || "neutral";
   const profileField = activeAnalysis?.detectedField || "general";
   
-  let dynamicPortrait = "/src/assets/images/professional_split_portrait_1779515079465.png";
+  let dynamicPortrait = "/images/professional_split_portrait_1779515079465.png";
   if (profileGender === "female") {
     if (profileField === "designer") {
-      dynamicPortrait = "/src/assets/images/female_designer_split_1779635098841.png";
+      dynamicPortrait = "/images/female_designer_split_1779635098841.png";
     } else {
-      dynamicPortrait = "/src/assets/images/female_developer_split_1779635078522.png";
+      dynamicPortrait = "/images/female_developer_split_1779635078522.png";
     }
   } else if (profileGender === "male") {
     if (profileField === "marketing" || profileField === "management" || profileField === "general") {
-      dynamicPortrait = "/src/assets/images/male_leader_split_1779635118718.png";
+      dynamicPortrait = "/images/male_leader_split_1779635118718.png";
     } else {
-      dynamicPortrait = "/src/assets/images/professional_split_portrait_1779515079465.png";
+      dynamicPortrait = "/images/professional_split_portrait_1779515079465.png";
     }
   } else {
     if (profileField === "designer") {
-      dynamicPortrait = "/src/assets/images/female_designer_split_1779635098841.png";
+      dynamicPortrait = "/images/female_designer_split_1779635098841.png";
     } else if (profileField === "marketing" || profileField === "management") {
-      dynamicPortrait = "/src/assets/images/male_leader_split_1779635118718.png";
+      dynamicPortrait = "/images/male_leader_split_1779635118718.png";
     } else {
-      dynamicPortrait = "/src/assets/images/female_developer_split_1779635078522.png";
+      dynamicPortrait = "/images/female_developer_split_1779635078522.png";
     }
   }
 
@@ -1997,6 +1997,10 @@ The candidate commits to present only authentic, original, and true historic eve
                     alt="Active Profile Portrait" 
                     className="object-cover w-full h-full object-right" 
                     referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      console.error(`[DIAGNOSTIC] Thumbnail error for: ${dynamicPortrait}`);
+                      (e.currentTarget as HTMLImageElement).src = "/images/professional_split_portrait_1779515079465.png";
+                    }}
                   />
                   <div className="absolute inset-0 bg-indigo-550/5" />
                 </div>
