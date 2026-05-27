@@ -3,6 +3,7 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
+import { classifyResume } from "./src/utils/classificationEngine";
 
 dotenv.config();
 
@@ -72,6 +73,9 @@ function getSimulationResponse(inputText: string, inputType: string) {
   const words = inputText.trim().split(/\s+/);
   const wordCount = words.length;
 
+  // Run the unified deterministic weighted classification engine
+  const classResult = classifyResume(inputText);
+
   let atsScore = 65;
   let brandAuthorityScore = 58;
 
@@ -98,178 +102,80 @@ function getSimulationResponse(inputText: string, inputType: string) {
     detectedGender = "neutral";
   }
 
-  // 2. Career Specialization Detection
-  let detectedField: "developer" | "designer" | "marketing" | "management" | "mechanical" | "general" = "general";
-  let specialization = "Professional Developer";
-  let rewrittenBio = "Collaborative developer experienced in streamlining technical tasks, improving team operations, and supporting key milestones through structured project coordination.";
-  let readinessInsight = "While your technical capabilities are apparent, presenting your experience through the lens of active team partnership and continuous skill alignment will significantly increase your overall visibility.";
-  
-  let detectedSkills = ["Project Coordination", "Agile Operations", "Information Architecture", "Data Validation"];
-  let detectedTools = ["Jira", "MS Office", "Google Workspace", "Slack"];
-  let education = "Bachelor's Degree / Professional Bootcamp";
-  let certifications = ["SDG 8 Workplace Ethics Standards", "Fundamentals of Agile Management"];
-  let yearsOfExperience = "2 to 4 Years";
+  const detectedField = classResult.detectedField;
+  const detectedLevel = classResult.detectedLevel;
+  const detectedRoleName = classResult.detectedRoleName;
+  const detectedSkills = classResult.detectedSkills;
+  const detectedTools = classResult.detectedTools;
+  const education = classResult.education;
+  const certifications = classResult.certifications;
+  const yearsOfExperience = classResult.yearsOfExperience;
+  const quantifiedAchievementsCount = classResult.quantifiedAchievementsCount;
 
-  if (lower.includes("design") || lower.includes("ux") || lower.includes("ui") || lower.includes("creative") || lower.includes("figma") || lower.includes("portfolio")) {
-    detectedField = "designer";
-    specialization = "Product Designer";
-    rewrittenBio = "Product designer experienced in crafting clean user flows, coordinating research initiatives, and collaborating with development teams to deliver intuitive product interfaces.";
-    readinessInsight = "Your profile highlights solid aesthetic execution, but articulating how you integrate customer feedback into architectural design shifts could improve recruiter resonance and interview confidence.";
-    detectedSkills = ["User-Centered Design", "Interaction Architectures", "Figma Token Systems", "User Interviews", "Visual Communication"];
-    detectedTools = ["Figma", "Miro", "Adobe CC", "InVision", "GitHub"];
-    education = "B.F.A. in Graphic Design & Digital Media";
-    certifications = ["Certified UX Professional (CXUP)", "Google UX Design Professional Certificate"];
-  } else if (lower.includes("manager") || lower.includes("pm") || lower.includes("lead") || lower.includes("scrum") || lower.includes("operations") || lower.includes("owner")) {
-    detectedField = "management";
-    specialization = "Product Leader";
-    rewrittenBio = "Product leader skilled in coordinating cross-functional milestones, aligning stakeholder criteria, and leading user-centered design reviews to guide products from ideation to launch.";
-    readinessInsight = "Your bio indicates strong logistical competence, but elevating how you define and measure product success will build greater trust with growth-oriented hiring partners.";
-    detectedSkills = ["Agile Roadmapping", "Scrum Master Coordination", "Stakeholder Synchronization", "Product Discovery", "RICE Prioritization"];
-    detectedTools = ["Jira", "Confluence", "Notion", "Linear", "Amplitude"];
-    education = "B.S. in Business Administration & Tech Management";
-    certifications = ["Certified Scrum Product Owner (CSPO)", "Professional Scrum Master I (PSM I)"];
-  } else if (lower.includes("marketing") || lower.includes("growth") || lower.includes("sales") || lower.includes("campaign") || lower.includes("analytics") || lower.includes("brand")) {
-    detectedField = "marketing";
-    specialization = "Growth Strategist";
-    rewrittenBio = "Growth strategist experienced in designing organic content campaigns, analyzing multi-channel performance data, and partnering with design teams to expand brand visibility.";
-    readinessInsight = "You clearly understand tactical campaign elements, yet introducing structured communication about conversion lifecycles and brand health will boost your strategic leadership authority.";
-    detectedSkills = ["Search Engine Optimization (SEO)", "Conversion Rate Optimization (CRO)", "Multi-Channel Budgeting", "Audience Segmentation", "Brand Narratives"];
-    detectedTools = ["Google Analytics 4", "SEMrush", "HubSpot", "Meta Ads Manager", "SQL"];
-    education = "B.A. in Communications & Growth Marketing";
-    certifications = ["Google Ads Measurement Certification", "HubSpot Inbound Marketing Certificate"];
-  } else if (lower.includes("mechanical") || lower.includes("cad") || lower.includes("solidworks") || lower.includes("manufacturing") || lower.includes("aerospace") || lower.includes("robotics") || lower.includes("thermodynamics") || lower.includes("fluids") || lower.includes("manufacturing")) {
-    detectedField = "mechanical";
-    specialization = "Mechanical Design Engineer";
-    rewrittenBio = "Detail-driven Mechanical Engineer skilled in optimizing thermal-fluid systems, coordinating manufacturing designs in SOLIDWORKS, and analyzing process tolerances to ensure maximum lifecycle safety and efficiency.";
-    readinessInsight = "Your profile highlights strong analytical CAD skills, but clarifying how you align process testing with physical manufacturing constraints inside team feedback cycles will instantly elevate your authority.";
-    detectedSkills = ["Computer-Aided Design (CAD)", "Stress & Thermal Analysis", "DFM (Design for Manufacturing)", "Geometric Dimensioning & Tolerancing (GD&T)", "Pneumatic Systems design"];
-    detectedTools = ["SolidWorks", "ANSYS", "MATLAB", "AutoCAD", "LabVIEW"];
-    education = "B.S. in Mechanical Engineering";
-    certifications = ["Certified SolidWorks Professional (CSWP)", "Fundamentals of Engineering (FE) Passed"];
-  } else if (lower.includes("engineer") || lower.includes("react") || lower.includes("software") || lower.includes("code") || lower.includes("developer") || lower.includes("frontend") || lower.includes("backend") || lower.includes("typescript")) {
-    detectedField = "developer";
-    specialization = "Software Engineer";
-    rewrittenBio = "Software Developer experienced in improving operational efficiency, solving technical challenges, and supporting scalable product development through collaborative teamwork.";
-    readinessInsight = "Your profile demonstrates strong technical capability, but clearer communication of measurable impact could improve recruiter confidence and interview conversion potential.";
-    detectedSkills = ["React.js", "TypeScript", "Node.js Express", "Asynchronous Systems Routing", "Schema Implementations"];
-    detectedTools = ["VS Code", "Git / GitHub Actions", "Docker", "PostgreSQL", "Vite"];
-    education = "B.S. in Computer Science / Software Engineering";
-    certifications = ["AWS Certified Cloud Practitioner", "Professional Scrum Developer"];
-    yearsOfExperience = "2 to 4 Years";
-  }
+  let rewrittenBio = `Collaborative professional seasoned in facilitating critical milestones, improving team velocity speeds, and driving collaborative product deliverables as a modern ${detectedRoleName}. Detailed-oriented, focusing on process optimization and high-quality deliverables.`;
+  let readinessInsight = `Your profile highlights solid vocational competence as a ${detectedRoleName}, but clarifying how you align process testing with physical milestones inside feedback cycles will instantly elevate your professional brand.`;
 
-  // 3. Career Level Detection
-  let detectedLevel: "entry" | "experienced" | "senior" = "experienced";
-  yearsOfExperience = "2 to 4 Years";
-  if (lower.includes("student") || lower.includes("graduate") || lower.includes("junior") || lower.includes("intern") || lower.includes("entry") || lower.includes("looking for roles") || lower.includes("bootcamp")) {
-    detectedLevel = "entry";
-    yearsOfExperience = "Developing (0 to 1 Year)";
-  } else if (lower.includes("senior") || lower.includes("lead") || lower.includes("principal") || lower.includes("architect") || lower.includes("director") || lower.includes("expert") || lower.includes("years of experience")) {
-    detectedLevel = "senior";
-    yearsOfExperience = "Established (5+ Years)";
-  }
-
-  // 4. Custom Role Name mapping
-  let levelPrefix = detectedLevel === "entry" ? "Junior " : detectedLevel === "senior" ? "Senior " : "";
-  let detectedRoleName = `${levelPrefix}${specialization}`;
-
-  // Count quantifiable achievements
-  const quantifiedAchievementsCount = (lower.match(/\b(percent|%|\b\d+%\b|\b\d+\s?x\b|millions?|\d+\s?k\b|hours|days|speedup|optimized|reduced)\b/g) || []).length;
-
-  // 5. Customize Career Alignment Mapping
-  let careerMap: { sector: string; score: number }[] = [];
   if (detectedField === "developer") {
-    careerMap = [
-      { sector: "Asynchronous Systems Engineering", score: Math.round(atsScore * 1.05) },
-      { sector: "Distributed Product Operations", score: Math.round(atsScore * 0.94) },
-      { sector: "Database Infrastructure Integrity", score: Math.round(atsScore * 0.88) },
-      { sector: "Creative UI Integrations", score: Math.round(atsScore * 0.79) }
-    ];
+    rewrittenBio = `Software Engineer experienced in improving operational efficiency, solving technical challenges, and supporting scalable product development through collaborative teamwork and parsed tools.`;
+    readinessInsight = `Your profile demonstrates strong technical capability, but clearer communication of measurable impact with direct metric outcomes could improve recruiter confidence and interview conversion potential.`;
   } else if (detectedField === "designer") {
-    careerMap = [
-      { sector: "UX Architecture Research", score: Math.round(atsScore * 1.04) },
-      { sector: "Responsive UI Visual Blueprinting", score: Math.round(atsScore * 0.95) },
-      { sector: "Cross-Platform Token Style Systems", score: Math.round(atsScore * 0.86) },
-      { sector: "Strategic Product Ideation Labs", score: Math.round(atsScore * 0.77) }
-    ];
+    rewrittenBio = `Product Designer experienced in crafting clean user flows, coordinating research initiatives, and collaborating with development teams to deliver intuitive product interfaces.`;
+    readinessInsight = `Your profile highlights solid aesthetic execution, but articulating how you integrate user feedback into architectural design shifts could improve recruiter resonance under SDG-8 principles.`;
   } else if (detectedField === "marketing") {
-    careerMap = [
-      { sector: "Metric Performance Marketing", score: Math.round(atsScore * 1.03) },
-      { sector: "Client Funnel Retention Operations", score: Math.round(atsScore * 0.93) },
-      { sector: "Organic SEO/CRO Growth Strategy", score: Math.round(atsScore * 0.84) },
-      { sector: "Regional Brand Exposure Campaigning", score: Math.round(atsScore * 0.78) }
-    ];
-  } else if (detectedField === "management") {
-    careerMap = [
-      { sector: "Agile Cross-Functional Roadmapping", score: Math.round(atsScore * 1.06) },
-      { sector: "High-Volume Release Cycle Risk Mitigation", score: Math.round(atsScore * 0.92) },
-      { sector: "Product Feature Discovery Research", score: Math.round(atsScore * 0.85) },
-      { sector: "Technical Resource Pipeline Staffing", score: Math.round(atsScore * 0.75) }
-    ];
+    rewrittenBio = `Growth Strategist experienced in designing organic content campaigns, analyzing multi-channel performance data, and partnering with design teams to expand brand visibility.`;
+    readinessInsight = `You clearly understand tactical campaign elements, yet introducing structured communication about conversion lifecycles and brand health will boost your strategic leadership authority.`;
   } else if (detectedField === "mechanical") {
-    careerMap = [
-      { sector: "Thermal Fluids & Aerodynamic Modeling", score: Math.round(atsScore * 1.03) },
-      { sector: "SOLIDWORKS Modular Assembly Prototyping", score: Math.round(atsScore * 0.94) },
-      { sector: "Process Optimization & Lifecycles Testing", score: Math.round(atsScore * 0.88) },
-      { sector: "High-Tolerance Manufacturing Safety Standards", score: Math.round(atsScore * 0.81) }
-    ];
-  } else {
-    careerMap = [
-      { sector: "Strategic Communications", score: Math.round(atsScore * 1.01) },
-      { sector: "Workflow Operations", score: Math.round(atsScore * 0.91) },
-      { sector: "Resource Project Coordination", score: Math.round(atsScore * 0.85) },
-      { sector: "Professional Relations", score: Math.round(atsScore * 0.76) }
-    ];
+    rewrittenBio = `Detail-driven CAD Engineer skilled in optimizing thermal-fluid systems, coordinating manufacturing designs, and analyzing process tolerances to ensure maximum lifecycle safety and efficiency.`;
+    readinessInsight = `Your profile highlights strong analytical skills, but clarifying how you align process testing with physical manufacturing constraints inside team feedback cycles will instantly elevate your authority.`;
   }
 
-  // Ensure scores cap out at 100 max
-  careerMap = careerMap.map(entry => ({
-    sector: entry.sector,
-    score: Math.min(100, Math.max(10, entry.score))
+  // Career map structured properly matching suggested sectors
+  const careerMap = classResult.suggestedSectors.map(sec => ({
+    sector: sec.sector,
+    score: Math.min(100, Math.max(10, sec.score))
   }));
 
   let perceptionGap = "Your summary is rich in standard tools and processes, but it can sometimes mask your real contribution to the team's velocity and outcomes. Employers will perceive you as an executor rather than a self-directed problem solver.";
-  if (inputType === "cv") {
-    perceptionGap = "Your summary is rich in standard tools and processes, but it can sometimes mask your real contribution to the team's velocity and outcomes. Employers will perceive you as an executor rather than a self-directed problem solver.";
-  } else if (inputType === "bio") {
+  if (inputType === "bio") {
     perceptionGap = "You possess deep specialized expertise, but your current wording presents a list of historic duties. This creates a gap where employers struggle to see your active vision or forward-looking potential.";
   }
 
   // Extra alignment markers (SDG 8 Focus)
   const industryAlignment = Math.min(100, Math.max(45, atsScore + 3));
   const communicationFit = Math.min(100, Math.max(50, brandAuthorityScore + 6));
-  const technicalFit = Math.min(100, Math.max(40, detectedField === "developer" ? atsScore + 7 : atsScore - 2));
+  const technicalFit = Math.min(100, Math.max(40, detectedField === "developer" || detectedField === "mechanical" ? atsScore + 7 : atsScore - 2));
   const leadershipFit = Math.min(100, Math.max(35, detectedLevel === "senior" ? brandAuthorityScore + 12 : brandAuthorityScore - 6));
-  const alignmentExplanation = `Your profile demonstrates robust vocational alignment through clear foundational competencies in ${specialization.toLowerCase()} architectures. To secure decent, sustainable work under SDG 8 criteria, strengthening your declarative task ownership is critical. Your technical fit score is anchored by your parsed knowledge of ${detectedSkills[0]} and ${detectedSkills[1]}, whereas your leadership and brand fit will improve significantly once quantitative milestones are clearly labeled.`;
+  
+  const alignmentExplanation = `Your profile demonstrates robust vocational alignment through clear foundational competencies in ${detectedRoleName} architectures. To secure decent, sustainable work under SDG 8 criteria, strengthening your declarative task ownership is critical. Your technical fit score is anchored by your parsed knowledge of ${detectedSkills[0] || 'core technologies'}, whereas your leadership and brand fit will improve significantly once quantitative milestones are clearly labeled.`;
 
   return {
     isSimulated: true,
-    atsScore: atsScore,
-    brandAuthorityScore: brandAuthorityScore,
-    recruiterPerception: `Demonstrates reliable functional competence as a ${detectedRoleName}. While the profile conveys dedication and domain knowledge, it currently undersells major achievements as ongoing duties. Improving this framing can immediately unlock deeper professional opportunities.`,
+    atsScore,
+    brandAuthorityScore,
+    recruiterPerception: `Demonstrates reliable functional competence as a ${detectedRoleName}. While the profile conveys dedication and domain knowledge, it currently undersells major achievements as ongoing duties. Improving this framing can immediately unlock deeper professional opportunities aligned with SDG-8 values.`,
     strengths: [
-      `Demonstrated subject-matter expertise in ${specialization} principles`,
-      "Authentic, straightforward personal voice and orientation",
-      "Clear descriptions of core responsibilities and team coordination support"
+      `Demonstrated subject-matter expertise in ${detectedRoleName} principles.`,
+      "Authentic, straightforward personal voice and orientation.",
+      "Clear descriptions of core responsibilities and team coordination support."
     ],
     weaknesses: [
-      "Inconsistently quantified outcomes and scale indicators",
-      "Emphasis on historical duties rather than forward-looking team contributions",
-      "Terminology does not fully align with modern self-directed leadership criteria"
+      "Inconsistently quantified outcomes and scale indicators in previous duties.",
+      "Emphasis on historical chores rather than forward-looking team contributions.",
+      "Terminology does not fully align with modern self-directed leadership criteria."
     ],
-    rewrittenBio: rewrittenBio,
+    rewrittenBio,
     opportunitySuggestions: [
       "Quantify your primary contributions with direct human or business impact metrics.",
       "Re-frame duty statements into proactive, initiative-taking achievements.",
       "Align key terminology with modern industry expectations of self-directed leadership."
     ],
-    perceptionGap: perceptionGap,
+    perceptionGap,
     opportunityReadinessInsight: readinessInsight,
-    detectedGender: detectedGender,
-    detectedField: detectedField,
-    detectedLevel: detectedLevel,
-    detectedRoleName: detectedRoleName,
-    careerMap: careerMap,
+    detectedGender,
+    detectedField,
+    detectedLevel,
+    detectedRoleName,
+    careerMap,
     detectedSkills,
     detectedTools,
     yearsOfExperience,
@@ -280,7 +186,8 @@ function getSimulationResponse(inputText: string, inputType: string) {
     communicationFit,
     technicalFit,
     leadershipFit,
-    alignmentExplanation
+    alignmentExplanation,
+    domainConfidence: classResult.domainConfidence
   };
 }
 
@@ -516,6 +423,9 @@ app.post("/api/analyze", rateLimiter, async (req, res) => {
     return res.status(400).json({ error: "No input profile text was provided for validation." });
   }
 
+  // Unified pre-parsing using the deterministic Weighted Career Classification Engine
+  const classification = classifyResume(text);
+
   // If Gemini client is not initialized, return simulation fallback directly
   if (!ai) {
     return res.json({
@@ -532,25 +442,31 @@ Analyze the following professional text input (which represents a ${type === 'cv
 ${text}
 """
 
-Provide an expert, constructive, and empowering professional positioning analysis. Keep the language realistic, encouraging, and human-centered. 
+You MUST strictly align your analysis with the following pre-parsed deterministic career classifications to prevent environment-wide contradictions and ensure perfect client-server consistency:
+- DO NOT invent/guess unrelated fields.
+- DETECTED FIELD: ${classification.detectedField}
+- SENIORITY LEVEL: ${classification.detectedLevel}
+- TARGET POSITION HEADLINE: ${classification.detectedRoleName}
+- DOMAIN CONFIDENCE METRICS: ${JSON.stringify(classification.domainConfidence)}
+- KEY SKILLS FOUND: ${classification.detectedSkills.join(', ')}
+- TOOLSETS IDENTIFIED: ${classification.detectedTools.join(', ')}
+- EDUCATION PARSED: ${classification.education}
+- DETECTED CERTIFICATIONS: ${classification.certifications.join(', ')}
 
-Identify and extract:
-1. The likely gender of the candidate based on pronouns, names, or general stylistic cues. If not discernable or multiple, output "neutral". Choose strictly from: "male", "female", "neutral".
-2. The core professional career domain from text, e.g., "developer" for software/tech engineers, "designer" for UI/UX/creative designers, "marketing" for growth/sales specialists, "management" for products managers/team leads/ scrum masters, "mechanical" for mechanical or manufacturing engineering, and "general" for other roles. Choose strictly from: "developer", "designer", "marketing", "management", "mechanical", "general".
-3. The seniority or career level based on phrases like junior, senior, student, intern, director, lead. Choose strictly from: "entry", "experienced", "senior".
-4. A highly specific professional role title mapping their primary context (e.g. "Brand Operations Coordinator", "Senior Full-Stack Developer", or "Junior UX Specialist").
-5. A list of 4 specific opportunity sectors of alignment tailored to their skills, each with an estimated career-fit score matching their ATS suitability (e.g., sector: "UX Design", score: 84).
-6. detectedSkills: Array of up to 5 core parsed professional skills or competencies.
-7. detectedTools: Array of up to 5 software tools, platforms, or methodologies.
-8. yearsOfExperience: A short string summarizing their estimated experience tier.
-9. education: A parsed/summarized high-level credential or degree.
-10. certifications: Array of professional certifications or training badges parsed or highly relatable.
-11. quantifiedAchievementsCount: The count of individual numerical metrics or business milestones (like "20% speedup", "saved 15 hours", "$2k") found.
-12. industryAlignment: Integer from 10 to 100 capturing their sector maturity.
-13. communicationFit: Integer from 10 to 100 capturing branding and self-governing tone.
-14. technicalFit: Integer from 10 to 100 measuring technical specialized density.
-15. leadershipFit: Integer from 10 to 100 measuring accountability structure.
-16. alignmentExplanation: A 2-3 sentence Recruiter perspective career alignment explanation detailing their strengths and specific growth trajectories mapped under SDG 8 Decent Work guidelines.
+Provide an expert, constructive, and empowering professional positioning analysis. Keep the language realistic, encouraging, and human-centered.
+
+Fill the JSON schema fields using these exact values:
+- detectedGender: Likely gender of candidate. Choose strictly from: "male", "female", "neutral".
+- detectedField: Must be "${classification.detectedField}"
+- detectedLevel: Must be "${classification.detectedLevel}"
+- detectedRoleName: Must be "${classification.detectedRoleName}"
+- detectedSkills: Array of up to 5 core parsed professional skills. It is recommended to include: ${classification.detectedSkills.map(s => `"${s}"`).join(', ')}.
+- detectedTools: Array of up to 5 software tools/platforms. It is recommended to include: ${classification.detectedTools.map(t => `"${t}"`).join(', ')}.
+- yearsOfExperience: Summarized experience tier, such as "${classification.yearsOfExperience}"
+- education: Must be "${classification.education}"
+- certifications: Must contain at least: ${classification.certifications.map(c => `"${c}"`).join(', ')}
+- quantifiedAchievementsCount: Set to ${classification.quantifiedAchievementsCount}
+- domainConfidence: An array matching this exact data: ${JSON.stringify(classification.domainConfidence)}
 
 CRITICAL WRITING INSTRUCTION: Your rewritten bio must sound highly recruiter-realistic, professional, modern, and credible, avoiding typical over-the-top AI corporate buzzwords. DO NOT use formulas like "Empowered [Role]", or generic phrases like "driving human-centered outcomes", "strategic execution alignment", or "passionate about synergy". Write simple, active summaries representing true accountability and platform ownership.
 
@@ -567,9 +483,9 @@ The parameters to return are:
 - perceptionGap: A 2-3 sentence psychologically intelligent, supportive comparison highlighting how the user's authentic skills might be currently hidden or misperceived.
 - opportunityReadinessInsight: A 1-2 sentence psychologically intelligent, highly professional and realistic summary comment about the individual's employability readiness, interview readiness, communication quality, or professional visibility.
 - detectedGender: Strictly one of: "male", "female", "neutral".
-- detectedField: Strictly one of: "developer", "designer", "marketing", "management", "mechanical", "general".
-- detectedLevel: Strictly one of: "entry", "experienced", "senior".
-- detectedRoleName: A professional and recruiter-ready title.
+- detectedField: ${classification.detectedField}
+- detectedLevel: ${classification.detectedLevel}
+- detectedRoleName: "${classification.detectedRoleName}"
 - careerMap: An array of exactly 4 objects containing 'sector' (string) and 'score' (integer between 10 and 100) representing career directions of best alignment.
 - detectedSkills: Array of strings.
 - detectedTools: Array of strings.
@@ -577,11 +493,12 @@ The parameters to return are:
 - education: String.
 - certifications: Array of strings.
 - quantifiedAchievementsCount: Integer.
-- industryAlignment: Integer.
-- communicationFit: Integer.
-- technicalFit: Integer.
-- leadershipFit: Integer.
-- alignmentExplanation: String.`;
+- industryAlignment: Integer from 10 to 100.
+- communicationFit: Integer from 10 to 100.
+- technicalFit: Integer from 10 to 100.
+- leadershipFit: Integer from 10 to 100.
+- alignmentExplanation: String.
+- domainConfidence: Array of objects with 'domain' (string) and 'confidence' (integer).`;
 
     const response = await ai.models.generateContent({
       model: "gemini-3.5-flash",
@@ -615,7 +532,8 @@ The parameters to return are:
             "communicationFit",
             "technicalFit",
             "leadershipFit",
-            "alignmentExplanation"
+            "alignmentExplanation",
+            "domainConfidence"
           ],
           properties: {
             atsScore: { type: Type.INTEGER },
@@ -652,7 +570,18 @@ The parameters to return are:
             communicationFit: { type: Type.INTEGER },
             technicalFit: { type: Type.INTEGER },
             leadershipFit: { type: Type.INTEGER },
-            alignmentExplanation: { type: Type.STRING }
+            alignmentExplanation: { type: Type.STRING },
+            domainConfidence: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                required: ["domain", "confidence"],
+                properties: {
+                  domain: { type: Type.STRING },
+                  confidence: { type: Type.INTEGER }
+                }
+              }
+            }
           }
         }
       }

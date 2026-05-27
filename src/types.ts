@@ -10,7 +10,7 @@ export interface AnalysisResult {
   opportunityReadinessInsight?: string; // Emotionally intelligent AI commentary about employability readiness
   isSimulated: boolean;
   detectedGender?: "male" | "female" | "neutral";
-  detectedField?: "developer" | "designer" | "marketing" | "management" | "general";
+  detectedField?: "developer" | "designer" | "marketing" | "management" | "mechanical" | "general";
   detectedLevel?: "entry" | "experienced" | "senior";
   detectedRoleName?: string;
   careerMap?: { sector: string; score: number }[];
@@ -25,6 +25,7 @@ export interface AnalysisResult {
   technicalFit?: number;
   leadershipFit?: number;
   alignmentExplanation?: string;
+  domainConfidence?: { domain: string; confidence: number }[];
 }
 
 export interface FeatureItem {

@@ -29,6 +29,8 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 import { AnalysisResult } from "../types";
 import { exportEmployabilityPDF, exportEmployabilityDOCX } from "../utils/pdfGenerator";
+import { classifyResume } from "../utils/classificationEngine";
+
 
 interface ProfileAnalyzerProps {
   onAnalysisComplete: (result: AnalysisResult) => void;
@@ -617,64 +619,105 @@ Opportunity-Fit Goals: ${goals || "Sustainable workspace, continuous personal de
       
       setTimeout(() => {
         const lower = textToCore.toLowerCase();
+        
+        // Run our unified deterministic classification engine
+        const classResult = classifyResume(textToCore);
+
         let gender: "male" | "female" | "neutral" = "neutral";
         if (/(she|her|ms|female|woman)/i.test(lower)) gender = "female";
         else if (/(he|him|mr|male|man)/i.test(lower)) gender = "male";
 
-        let field: "developer" | "designer" | "marketing" | "management" | "general" = "general";
-        let defaultRole = "Sustainability Partner";
-        
-        if (/design|ux|ui|creative|figma|css/i.test(lower)) {
-          field = "designer";
-          defaultRole = "Interaction Designer";
-        } else if (/marketing|campaign|growth|brand|sales|organic/i.test(lower)) {
-          field = "marketing";
-          defaultRole = "Organic Growth Strategist";
-        } else if (/manager|pm|lead|scrum|product owner|operations/i.test(lower)) {
-          field = "management";
-          defaultRole = "Product Delivery Leader";
-        } else if (/developer|engineer|java|react|typescript|backend|frontend|code/i.test(lower)) {
-          field = "developer";
-          defaultRole = "Software Architect";
+        const {
+          detectedField,
+          detectedLevel,
+          detectedRoleName,
+          detectedSkills,
+          detectedTools,
+          education,
+          certifications,
+          quantifiedAchievementsCount,
+          domainConfidence,
+          yearsOfExperience
+        } = classResult;
+
+        const atsScore = /developer|engineer/i.test(lower) ? 88 : 84;
+        const brandAuthorityScore = 78;
+
+        let rewrittenBio = `Collaborative professional seasoned in facilitating critical milestones, improving team velocity speeds, and driving collaborative product deliverables as a modern ${detectedRoleName}. Detailed-oriented, focusing on process optimization.`;
+        let readinessInsight = `Your profile highlights solid vocational competence as a ${detectedRoleName}, but clarifying how you align process testing with physical milestones inside feedback cycles will instantly elevate your professional brand.`;
+
+        if (detectedField === "developer") {
+          rewrittenBio = `Software Engineer experienced in improving operational efficiency, solving technical challenges, and supporting scalable product development through collaborative teamwork and parsed tools.`;
+          readinessInsight = `Your profile demonstrates strong technical capability, but clearer communication of measurable impact with direct metric outcomes could improve recruiter confidence and interview conversion potential.`;
+        } else if (detectedField === "designer") {
+          rewrittenBio = `Product Designer experienced in crafting clean user flows, coordinating research initiatives, and collaborating with development teams to deliver intuitive product interfaces.`;
+          readinessInsight = `Your profile highlights solid aesthetic execution, but articulating how you integrate user feedback into architectural design shifts could improve recruiter resonance under SDG-8 principles.`;
+        } else if (detectedField === "marketing") {
+          rewrittenBio = `Growth Strategist experienced in designing organic content campaigns, analyzing multi-channel performance data, and partnering with design teams to expand brand visibility.`;
+          readinessInsight = `You clearly understand tactical campaign elements, yet introducing structured communication about conversion lifecycles and brand health will boost your strategic leadership authority.`;
+        } else if (detectedField === "mechanical") {
+          rewrittenBio = `Detail-driven CAD Engineer skilled in optimizing thermal-fluid systems, coordinating manufacturing designs, and analyzing process tolerances to ensure maximum lifecycle safety and efficiency.`;
+          readinessInsight = `Your profile highlights strong analytical skills, but clarifying how you align process testing with physical manufacturing constraints inside team feedback cycles will instantly elevate your authority.`;
         }
 
-        const level = /senior|lead|director|principal/i.test(lower) ? "senior" : /junior|student|intern|entry/i.test(lower) ? "entry" : "experienced";
-        const titleName = `${level === "senior" ? "Senior " : level === "entry" ? "Junior " : ""}${defaultRole}`;
+        const careerMap = classResult.suggestedSectors.map(sec => ({
+          sector: sec.sector,
+          score: Math.min(100, Math.max(10, sec.score))
+        }));
+
+        let perceptionGap = "Your summary is rich in standard tools and processes, but it can sometimes mask your real contribution to the team's velocity and outcomes. Employers will perceive you as an executor rather than a self-directed problem solver.";
+        if (inputType === "bio") {
+          perceptionGap = "You possess deep specialized expertise, but your current wording presents a list of historic duties. This creates a gap where employers struggle to see your active vision or forward-looking potential.";
+        }
+
+        const industryAlignment = Math.min(100, Math.max(45, atsScore + 3));
+        const communicationFit = Math.min(100, Math.max(50, brandAuthorityScore + 6));
+        const technicalFit = Math.min(100, Math.max(40, detectedField === "developer" || detectedField === "mechanical" ? atsScore + 7 : atsScore - 2));
+        const leadershipFit = Math.min(100, Math.max(35, detectedLevel === "senior" ? brandAuthorityScore + 12 : brandAuthorityScore - 6));
+        
+        const alignmentExplanation = `Your profile demonstrates robust vocational alignment through clear foundational competencies in ${detectedRoleName} architectures. To secure decent, sustainable work under SDG 8 criteria, strengthening your declarative task ownership is critical. Your technical fit score is anchored by your parsed knowledge of ${detectedSkills[0] || 'core technologies'}, whereas your leadership and brand fit will improve significantly once quantitative milestones are clearly labeled.`;
 
         // Dynamic standard indicators complying with our Employability Intelligence Standard
         const fallbackResult: AnalysisResult = {
-          atsScore: /developer|engineer/i.test(lower) ? 88 : 84,
-          brandAuthorityScore: 78,
-          recruiterPerception: `Presents standard functional diligence as a ${titleName}. While the foundational skills list is clean, the resume focus tilts toward administrative duties. Re-framing these into quantifiable achievements instantly upgrades recruiter trust.`,
+          atsScore,
+          brandAuthorityScore,
+          recruiterPerception: `Demonstrates reliable functional competence as a ${detectedRoleName}. While the profile conveys dedication and domain knowledge, it currently undersells major achievements as ongoing duties. Improving this framing can immediately unlock deeper professional opportunities aligned with SDG-8 values.`,
           strengths: [
-            "Authentic subject matter knowledge",
-            "Ethical contribution metrics oriented with SDG-8 values",
-            "Clear familiarity with core domain systems"
+            `Demonstrated subject-matter expertise in ${detectedRoleName} principles.`,
+            "Authentic, straightforward personal voice and orientation.",
+            "Clear descriptions of core responsibilities and team coordination support."
           ],
           weaknesses: [
-            "Over-emphasis on daily duties instead of outcome ownership",
-            "Omits specific workflow acceleration measurements",
-            "Professional headline under-represents leadership capacity"
+            "Inconsistently quantified outcomes and scale indicators in previous duties.",
+            "Emphasis on historical chores rather than forward-looking team contributions.",
+            "Terminology does not fully align with modern self-directed leadership criteria."
           ],
-          rewrittenBio: `Empathetic specialist seasoned in facilitating critical milestones, improving team velocity speeds, and driving collaborative product deliverables as a modern ${titleName}.`,
+          rewrittenBio,
           opportunitySuggestions: [
-            "Convert repetitive duty descriptions into outcome statements with direct metric outcomes.",
-            "Formulate a visible ethical pledge stating zero tolerance for falsified achievements.",
-            "Integrate custom indicators detailing collaboration scopes and team count sizes."
+            "Quantify your primary contributions with direct human or business impact metrics.",
+            "Re-frame duty statements into proactive, initiative-taking achievements.",
+            "Align key terminology with modern industry expectations of self-directed leadership."
           ],
-          perceptionGap: `Your draft reads like a standard execution checklist, though your volunteer guidance and proactive problem-solving points to a highly self-motivated leader.`,
-          opportunityReadinessInsight: `Upgrading communication patterns resolves reading fatigue, moving your profile from simple duty executor directly into strategic contributor buckets.`,
+          perceptionGap,
+          opportunityReadinessInsight: readinessInsight,
           isSimulated: true,
           detectedGender: gender,
-          detectedField: field,
-          detectedLevel: level,
-          detectedRoleName: titleName,
-          careerMap: [
-            { sector: `${defaultRole} Core Systems`, score: 92 },
-            { sector: "Cross-Functional Collaboration", score: 85 },
-            { sector: "Technical Outreach Operations", score: 79 },
-            { sector: "Sustainable Development Management", score: 72 }
-          ]
+          detectedField,
+          detectedLevel,
+          detectedRoleName,
+          careerMap,
+          detectedSkills,
+          detectedTools,
+          yearsOfExperience,
+          education,
+          certifications,
+          quantifiedAchievementsCount,
+          industryAlignment,
+          communicationFit,
+          technicalFit,
+          leadershipFit,
+          alignmentExplanation,
+          domainConfidence
         };
 
         setActiveAnalysis(fallbackResult);
@@ -2148,6 +2191,77 @@ The candidate commits to present only authentic, original, and true historic eve
                           </div>
                         </div>
                       ))}
+                    </div>
+                  </div>
+
+                  {/* 15-Domain Career Placement Confidence Matrix (Phase 2 & 3) */}
+                  <div className="p-6 rounded-2xl border border-white/5 bg-zinc-950/40 text-left space-y-5">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-1 border-b border-zinc-900/40">
+                      <div className="space-y-0.5">
+                        <span className="text-[10px] uppercase font-bold tracking-widest text-indigo-400 font-sans block">
+                          EMPLOYABILITY PLACEMENT PROFILES
+                        </span>
+                        <h4 className="text-white text-base font-semibold font-display">
+                          15-Domain Career Alignment Matrix
+                        </h4>
+                      </div>
+                      <span className="px-3 py-1 rounded-full text-[9px] font-mono bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-bold uppercase tracking-wider">
+                        Active Threshold Match: &gt;= 30%
+                      </span>
+                    </div>
+
+                    <p className="text-zinc-500 text-[11.5px] leading-relaxed font-sans">
+                      Our system calculates semantic probability weights across all 15 core professional frameworks. Only roles surpassing the 30% confidence floor are prioritized for active employer recommendations and interview matching.
+                    </p>
+
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pt-1">
+                      {(activeAnalysis.domainConfidence || [
+                        { domain: "Engineering", confidence: activeAnalysis.detectedField === "mechanical" ? 92 : 8 },
+                        { domain: "Software", confidence: activeAnalysis.detectedField === "developer" ? 95 : 12 },
+                        { domain: "UI/UX", confidence: activeAnalysis.detectedField === "designer" ? 94 : 5 },
+                        { domain: "Marketing", confidence: activeAnalysis.detectedField === "marketing" ? 91 : 7 },
+                        { domain: "Operations", confidence: activeAnalysis.detectedField === "management" ? 88 : 42 },
+                        { domain: "Finance", confidence: 5 },
+                        { domain: "Healthcare", confidence: activeAnalysis.detectedField === "mechanical" ? 44 : 3 },
+                        { domain: "Research", confidence: 15 },
+                        { domain: "Energy", confidence: activeAnalysis.detectedField === "mechanical" ? 81 : 4 },
+                        { domain: "Networking", confidence: activeAnalysis.detectedField === "developer" ? 78 : 6 },
+                        { domain: "Data", confidence: activeAnalysis.detectedField === "developer" ? 84 : 10 },
+                        { domain: "Product", confidence: activeAnalysis.detectedField === "management" ? 89 : 14 },
+                        { domain: "Sales", confidence: 8 },
+                        { domain: "Education", confidence: 4 },
+                        { domain: "Cybersecurity", confidence: 6 }
+                      ]).sort((a,b) => b.confidence - a.confidence).map((item) => {
+                        const isMatch = item.confidence >= 30;
+                        return (
+                          <div 
+                            key={item.domain} 
+                            className={`p-3 rounded-xl border transition-all duration-300 ${
+                              isMatch 
+                                ? "bg-indigo-950/20 border-indigo-900/40 text-indigo-200" 
+                                : "bg-zinc-900/20 border-white/5 text-zinc-500"
+                            }`}
+                          >
+                            <div className="flex justify-between items-center mb-1.5">
+                              <span className={`text-xs font-semibold uppercase tracking-tight block ${isMatch ? "text-white" : "text-zinc-500"}`}>
+                                {item.domain}
+                              </span>
+                              <span className={`font-mono text-xs font-bold ${isMatch ? "text-indigo-400" : "text-zinc-555"}`}>
+                                {item.confidence}%
+                              </span>
+                            </div>
+                            <div className="h-1.5 w-full bg-zinc-950 rounded-full overflow-hidden mb-1">
+                              <div 
+                                className={`h-full rounded-full ${isMatch ? "bg-indigo-500" : "bg-zinc-805"}`} 
+                                style={{ width: `${item.confidence}%` }} 
+                              />
+                            </div>
+                            <span className="text-[8.5px] font-mono uppercase tracking-wider block">
+                              {isMatch ? "✓ Qualified" : "◌ Below Floor"}
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
 
