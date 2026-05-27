@@ -95,7 +95,7 @@ export default function Hero({ onCtaClick, activeResult }: HeroProps) {
   const [mounted, setMounted] = useState(false);
   const [activeMockTab, setActiveMockTab] = useState<"recruiter" | "ats" | "growth">("recruiter");
   const [sliderVal, setSliderVal] = useState<number>(50);
-  const [currentSlideIdx, setCurrentSlideIdx] = useState<number>(0);
+  const [currentImage, setCurrentImage] = useState<number>(0);
   const [hasInteracted, setHasInteracted] = useState<boolean>(false);
   const [preloadStatus, setPreloadStatus] = useState<Record<string, string>>({});
 
@@ -131,9 +131,9 @@ export default function Hero({ onCtaClick, activeResult }: HeroProps) {
   useEffect(() => {
     if (!mounted || activeResult) return;
 
-    console.log(`[DIAGNOSTIC] Spinning up stable interval rotation. Initial index: ${currentSlideIdx}`);
+    console.log(`[DIAGNOSTIC] Spinning up stable interval rotation. Initial index: ${currentImage}`);
     const interval = setInterval(() => {
-      setCurrentSlideIdx((prev) => {
+      setCurrentImage((prev) => {
         const nextIdx = (prev + 1) % SLIDES.length;
         console.log(`[DIAGNOSTIC] Rotation interval triggered. Current index: ${nextIdx}`);
         return nextIdx;
@@ -228,7 +228,7 @@ export default function Hero({ onCtaClick, activeResult }: HeroProps) {
       scoreBoost: 20
     };
   } else {
-    currentSlide = SLIDES[currentSlideIdx];
+    currentSlide = SLIDES[currentImage];
   }
 
   // Active resonance score
@@ -371,7 +371,7 @@ export default function Hero({ onCtaClick, activeResult }: HeroProps) {
                 
                 {/* Visual rotation with stable opacity cross-fade logic (Indestructible in Production) */}
                 {SLIDES.map((slide, idx) => {
-                  const isSlideActive = !isAnalyzed && idx === currentSlideIdx;
+                  const isSlideActive = !isAnalyzed && idx === currentImage;
                   const isAnalyzedActive = isAnalyzed && currentSlide.image === slide.image;
                   const isVisible = isAnalyzed ? isAnalyzedActive : isSlideActive;
 
