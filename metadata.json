@@ -1,0 +1,6 @@
+{
+  "name": "PersonaIQ",
+  "description": "Empowering career branding and employability readiness platform helping students and professionals align with stable, productive work aligned with SDG 8.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
