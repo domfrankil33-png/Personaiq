@@ -209,6 +209,48 @@ const INTERVIEW_QUESTIONS_POOL = {
   ]
 };
 
+const getRecruiterMoodConfig = (mood?: string) => {
+  const m = mood?.toLowerCase() || "neutral";
+  switch (m) {
+    case "disappointed":
+      return {
+        label: "Disappointed ⚠️",
+        color: "bg-rose-500/10 border border-rose-500/20 text-rose-400",
+        alertText: "Scores dropped realistically due to weak, non-specific or empty metrics descriptions.",
+        bgGlow: "rgba(239, 68, 68, 0.025)"
+      };
+    case "skeptical":
+      return {
+        label: "Skeptical 🤔",
+        color: "bg-amber-500/15 border border-amber-550/20 text-amber-400",
+        alertText: "Interviewer is highly doubtful about these generic metrics and passive voice postures.",
+        bgGlow: "rgba(245, 158, 11, 0.015)"
+      };
+    case "impressed":
+      return {
+        label: "Impressed 👏",
+        color: "bg-sky-500/10 border border-sky-500/20 text-sky-400",
+        alertText: "Good, specific outcomes and direct active vocabulary aligned with STAR rules.",
+        bgGlow: "rgba(14, 165, 233, 0.02)"
+      };
+    case "excited":
+      return {
+        label: "Excited 🚀",
+        color: "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400",
+        alertText: "Elite! Contains highly specific metrics, action structure alignment, and great persona priority mapping.",
+        bgGlow: "rgba(16, 185, 129, 0.02)"
+      };
+    case "neutral":
+    default:
+      return {
+        label: "Neutral 😐",
+        color: "bg-zinc-800/60 border border-zinc-700/55 text-zinc-300",
+        alertText: "Standard performance overview. Try adding more quantified metrics matching their focus priorities.",
+        bgGlow: "transparent"
+      };
+  }
+};
+
 export default function ProfileAnalyzer({ onAnalysisComplete }: ProfileAnalyzerProps) {
   // Input Selection state
   const [inputMode, setInputMode] = useState<"upload" | "scratch">("upload");
@@ -265,6 +307,7 @@ export default function ProfileAnalyzer({ onAnalysisComplete }: ProfileAnalyzerP
     recruiterPerception?: string;
   }>>({});
   const [currentlySubmittingAns, setCurrentlySubmittingAns] = useState<string | null>(null);
+  const [selectedPersona, setSelectedPersona] = useState<string>("manager");
 
   // Component references
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -284,6 +327,7 @@ export default function ProfileAnalyzer({ onAnalysisComplete }: ProfileAnalyzerP
       const savedAnswers = localStorage.getItem("personaiq_interview_answers");
       const savedResults = localStorage.getItem("personaiq_interview_results");
       const savedCandidateName = localStorage.getItem("personaiq_candidate_name");
+      const savedPersona = localStorage.getItem("personaiq_selected_persona");
 
       // Recover Start From Scratch forms as well
       const savedDesiredRole = localStorage.getItem("personaiq_scratch_desired_role");
@@ -309,6 +353,7 @@ export default function ProfileAnalyzer({ onAnalysisComplete }: ProfileAnalyzerP
       if (savedAnswers) setInterviewAnswers(JSON.parse(savedAnswers));
       if (savedResults) setInterviewResults(JSON.parse(savedResults));
       if (savedCandidateName) setCandidateName(savedCandidateName);
+      if (savedPersona) setSelectedPersona(savedPersona);
 
       if (savedDesiredRole) setDesiredRole(savedDesiredRole);
       if (savedSkills) setSkills(savedSkills);
@@ -348,6 +393,7 @@ export default function ProfileAnalyzer({ onAnalysisComplete }: ProfileAnalyzerP
 
       localStorage.setItem("personaiq_interview_answers", JSON.stringify(interviewAnswers));
       localStorage.setItem("personaiq_interview_results", JSON.stringify(interviewResults));
+      localStorage.setItem("personaiq_selected_persona", selectedPersona);
 
       localStorage.setItem("personaiq_scratch_desired_role", desiredRole);
       localStorage.setItem("personaiq_scratch_skills", skills);
@@ -364,7 +410,7 @@ export default function ProfileAnalyzer({ onAnalysisComplete }: ProfileAnalyzerP
   }, [
     journeyStep, inputText, inputType, inputMode, uploadedFile, activeAnalysis, 
     activeTab, interviewAnswers, interviewResults, desiredRole, skills, 
-    projects, volunteer, leadership, industries, tools, goals, candidateName
+    projects, volunteer, leadership, industries, tools, goals, candidateName, selectedPersona
   ]);
 
   // Handle textarea autosize expansion
@@ -698,63 +744,287 @@ Opportunity-Fit Goals: ${goals || "Sustainable workspace, continuous personal de
 
   // Dynamic adaptive question generator based on analyzed resume / target role
   const getQuestionsForActiveProfile = () => {
-    if (!activeAnalysis) return INTERVIEW_QUESTIONS_POOL.general;
+    if (!activeAnalysis) {
+      return [
+        {
+          id: "q1",
+          type: "behavioral",
+          question: "Describe a scenario where you successfully resolved a timeline bottleneck or functional block. What was your strategy and the quantifiable outcome?",
+          expectation: "Hiring managers look for methodical STAR-structure ownership, metric-backed action, and collaboration."
+        },
+        {
+          id: "q2",
+          type: "technical/situational",
+          question: "How do you systematically audit and organize legacy procedures or unstandardized steps to optimize delivery timelines for your stakeholders?",
+          expectation: "Shows structured systems thinking, active communication, standard digital tool proficiency, and operational clarity."
+        },
+        {
+          id: "q3",
+          type: "leadership/collaboration",
+          question: "Tell us about a time you mentored a peer or led a cross-functional workgroup to complete a demanding task. How did you foster support?",
+          expectation: "Measures leadership potential, active listening, delegation wisdom, thermal emotional intelligence, and shared accountability."
+        },
+        {
+          id: "q4",
+          type: "confidence/growth",
+          question: "How do you handle severe constructive feedback or flat rejection of your proposal or deliverables? Detail your emotional recovery plan.",
+          expectation: "Tests self-awareness, active improvement habits, lack of defensiveness, emotional composure, and long-term vocational growth."
+        }
+      ];
+    }
     const roleName = activeAnalysis.detectedRoleName || "Specialist";
     const level = activeAnalysis.detectedLevel || "experienced";
     const field = activeAnalysis.detectedField || "general";
 
+    // 1. Behavioral Question (Situation/Timeline bottleneck) based on Persona:
     const q1 = {
       id: "q1",
       type: "behavioral",
-      question: `Describe a specific scenario where you successfully resolved a complex timeline bottleneck or functional block as a ${level} ${roleName}. What was your precise strategy and the quantifiable outcome?`,
-      expectation: "Hiring leads look for methodical STAR-structure ownership (Situation, Task, Action, Result), metric-backed action, and collaborative alignment with SDG-8 standards."
+      question: `Describe a scenario where you successfully resolved a timeline bottleneck or functional block as a ${level} ${roleName}. What was your strategy and the quantifiable outcome?`,
+      expectation: "Hiring managers look for methodical STAR-structure ownership, metric-backed action, and collaboration."
     };
+    if (selectedPersona === "technical") {
+      q1.question = `Describe a severe runtime, mechanical, or compilation bottleneck you diagnosed and resolved as a ${level} ${roleName}. Explain your precise technical telemetry and the system throughput metrics after the fix.`;
+      q1.expectation = "Expects low-level systems knowledge, diagnostic debugging methodologies, and solid quantified benchmark throughput statistics.";
+    } else if (selectedPersona === "founder") {
+      q1.question = `As a ${level} ${roleName} in a high-velocity environment, tell us about a time you solved an existential timeline crash with zero budget or pre-existing templates. How did you push results out the door?`;
+      q1.expectation = "Looks for high risk tolerance, extreme raw ownership, self-directed output velocity, and resourcefulness under intense resource constraints.";
+    } else if (selectedPersona === "hr") {
+      q1.question = `Describe a situation as a ${level} ${roleName} where a major milestone was stalled due to severe interpersonal friction or conflicting goals. How did you align the stakeholders and foster group trust?`;
+      q1.expectation = "Evaluates behavioral maturity, high emotional intelligence (EQ), restorative conflict navigation, and long-term Decent Work values.";
+    } else if (selectedPersona === "creative") {
+      q1.question = `Walk us through a time you defended user research and interface style standards when product timelines or stakeholders demanded cutting corners. How did you ensure visual consistency?`;
+      q1.expectation = "Looks for customer advocacy, design systems adherence, visual layout consistency, and empathy-backed stakeholder negotiation.";
+    } else if (selectedPersona === "operations") {
+      q1.question = `Describe an instance where you optimized a highly chaotic or unstandardized operational procedure to reduce manual friction as a ${level} ${roleName}. What were the exact timeline speedups?`;
+      q1.expectation = "Looks for systems optimization, logistics management, standard task throughput metrics, and timeline efficiency gains.";
+    }
 
-    const q2_options = {
-      developer: {
-        question: `As a ${level} developer, how do you balance immediate feature velocity with long-term code maintainability, clean systems architecture, and technical debt reduction?`,
-        expectation: "Demonstrates engineering maturity, modular software patterns, testing confidence, and active communication with product partners."
-      },
-      designer: {
-        question: `Walk us through your design system implementation. How do you guarantee absolute user consistency and accessibility across multi-view platforms under design standard guidelines?`,
-        expectation: "Measures component standardization knowledge, Figma token mastery, accessibility compliance, and user-first testing habits."
-      },
-      marketing: {
-        question: `How do you design, execute, and split-test organic growth campaigns to isolate key user drop-off points in high-density conversions as a ${roleName}?`,
-        expectation: "Requires fluency in digital tracking toolchains, conversion rate optimization (CRO) metrics, and brand integrity metrics."
-      },
-      management: {
-        question: `Describe your methodology for prioritizing competing stakeholder requests or product feature backlogs while conserving team wellness and velocity.`,
-        expectation: "Reveals clear evaluation frameworks (such as RICE), expectation management, remote collaboration syncs, and boundary setting."
-      },
-      general: {
-        question: `How do you systematically audit and organize legacy procedures or unstandardized steps to optimize delivery timelines for your stakeholders?`,
-        expectation: "Shows structured systems thinking, active communication, standard digital tool proficiency, and operational clarity."
-      }
-    };
-    const q2 = q2_options[field as keyof typeof q2_options] || q2_options.general;
-    const q2Completed = {
+    // 2. Technical / Situational Question (Domain Specific) based on Field and Persona:
+    let q2 = {
       id: "q2",
       type: "technical/situational",
-      question: q2.question,
-      expectation: q2.expectation
+      question: `How do you systematically audit and organize legacy procedures or unstandardized steps to optimize delivery timelines for your stakeholders as a ${roleName}?`,
+      expectation: "Shows structured systems thinking, active communication, standard digital tool proficiency, and operational clarity."
     };
 
+    const q2_matrix: Record<string, Record<string, { question: string; expectation: string }>> = {
+      developer: {
+        manager: {
+          question: `As a ${level} developer, how do you balance immediate delivery schedules with long-term software maintainability, clean systems architecture, and technical debt reduction?`,
+          expectation: "Demonstrates engineering maturity, modular code patterns, automated testing habits, and active product team partner sync."
+        },
+        technical: {
+          question: `Walk us through your scaling strategy. How do you design systems to prevent high-volume database query latency and handle asynchronous thread bottlenecks under heavy loads?`,
+          expectation: "Evaluates low-level query optimizations, database indexing strategy, thread pools, and distributed server-side architecture depth."
+        },
+        founder: {
+          question: `We need to ship our MVP in 72 hours. How do you decide which software abstractions, automated tests, or database schemas to throw away vs. protect to ensure stable launch velocity?`,
+          expectation: "Tests pragmatic release prioritization, fast prototyping tradeoffs, risk mitigation, and shipping under heavy pressure."
+        },
+        hr: {
+          question: `Explain how you mentor junior developers or coordinate with non-technical business partners to foster a supportive, open, and high-velocity engineering department.`,
+          expectation: "Measures developmental mentorship, active translation of complex technical jargon, and team communication maturity."
+        },
+        creative: {
+          question: `How do you collaborate with design teams to translate interactive prototyping tokens into beautifully modular, accessible, and high-performance React UI components?`,
+          expectation: "Asks about design system tokens, component modularity, fluid animations (like motion/react), and accessibility (ARIA/WCAG)."
+        },
+        operations: {
+          question: `Describe your automated CI/CD deployment pipeline, rollback protocols, and systems integration validation structures to guarantee zero downtime environments.`,
+          expectation: "Looks for cloud platform deployment expertise, Docker containers orchestration, automated unit check flows, and reliability logs."
+        }
+      },
+      designer: {
+        manager: {
+          question: `Walk us through your design system implementation as a ${level} designer. How do you guarantee absolute user consistency and accessibility across multi-view platforms?`,
+          expectation: "Measures component standardization knowledge, Figma token mastery, accessibility compliance, and user-first testing habits."
+        },
+        technical: {
+          question: `Describe your technical handover parameters. How do you organize figma layout properties, dev auto-layouts, and color tokens so engineers can build 1:1 pixel perfect UIs?`,
+          expectation: "Checks knowledge of responsive layout grids, code variables, component structure nesting, design-to-code automated syncing."
+        },
+        founder: {
+          question: `How do you rapid-prototype user flows and gather qualitative customer feedback in a 48-hour design cycle to validate our core landing page conversions?`,
+          expectation: "Measures lean UX methodologies, guerrilla testing, high-impact wireframing speed, and conversion rate prioritization."
+        },
+        hr: {
+          question: `When a client or executive flatly rejects your creative layout after hours of wireframing, how do you handle the critique emotionally and align on next steps without friction?`,
+          expectation: "Tests ego-detachment, active listener posture, collaborative critique systems, and professional poise."
+        },
+        creative: {
+          question: `How do you define the aesthetic soul and visual storytelling guidelines of a brand? How do you balance pure artistic novelty with extreme user usability?`,
+          expectation: "Looks for typography pairing rules, visual hierarchy, emotional color palettes, and balanced white space alignment."
+        },
+        operations: {
+          question: `How do you organize design backlogs, track project deadlines, and pace resource deliverables inside a fast Scrum/Agile design sprints team?`,
+          expectation: "Evaluates agile workflow, figma version control, design-to-dev ticket prioritization, and timeline tracking."
+        }
+      },
+      marketing: {
+        manager: {
+          question: `How do you design, execute, and split-test growth campaigns to isolate key user drop-off points in high-density conversions as a ${roleName}?`,
+          expectation: "Requires fluency in digital tracking toolchains, conversion rate optimization (CRO) metrics, and brand integrity metrics."
+        },
+        technical: {
+          question: `Walk us through your data analytics stack. How do you trace multi-channel attribution and setup analytical dashboard queries to isolate high-value cohorts?`,
+          expectation: "Looks for advanced marketing telemetry stack, performance tracking, funnel setup, and data-driven analysis depth."
+        },
+        founder: {
+          question: `We have a $0 marketing budget this month. How do you design and trigger organic growth loops, viral campaigns, or SEO hacks to capture 5,000 active users?`,
+          expectation: "Evaluates growth hacking loops, organic media distributions, community alignment networks, and viral referral loops."
+        },
+        hr: {
+          question: `How do you ensure our marketing campaigns maintain high ethical alignment, user data privacy, and inclusive messaging matching SDG 8 standards of Decent Work?`,
+          expectation: "Measures marketing ethics, privacy compliance, inclusive audience representation, and brand integrity standards."
+        },
+        creative: {
+          question: `How do you balance analytical performance-metric marketing (like high CTR copy) with beautiful brand storytelling and visual aesthetic standards?`,
+          expectation: "Looks for copywriting balance, tone-of-voice alignment, visual brand assets control, and creative content marketing structures."
+        },
+        operations: {
+          question: `How do you automate marketing lead distributions, budget allocations across active channels, and setup daily reporting dashboards?`,
+          expectation: "Assesses CRM toolchains, automated marketing platform integrations, performance dash assemblies, and operations speed."
+        }
+      },
+      management: {
+        manager: {
+          question: `Describe your methodology for prioritizing competing stakeholder requests or product feature backlogs while conserving team wellness and velocity as a ${roleName}.`,
+          expectation: "Reveals clear evaluation frameworks (such as RICE), expectation management, remote collaboration syncs, and boundary setting."
+        },
+        technical: {
+          question: `How do you collaborate with engineering architects to translate high-level product features into technical specifications, user schemas, and API endpoint maps?`,
+          expectation: "Assesses database schema understandings, API endpoints mappings, legacy software code-debts risk management, and dev alignment."
+        },
+        founder: {
+          question: `Our primary funding line has been delayed, requiring us to pivot our product roadmap immediately. How do you align the team and deliver a revised MVP scope under high stress?`,
+          expectation: "Looks for strategic speed pivots, crisis management, extreme motivation alignments, and aggressive roadmap scoping."
+        },
+        hr: {
+          question: `A senior member of your team is experiencing extreme burnout and underperforming on sprint commits. How do you balance the roadmap delivery needs with team care?`,
+          expectation: "Measures human-first leadership, empathetic coaching, resource redistributions, and sustainability criteria under SDG 8."
+        },
+        creative: {
+          question: `How do you inject high-fidelity user empathy, interactive design systems, and aesthetic premium quality into product roadmaps that are heavily tech-driven?`,
+          expectation: "Assesses user-first design systems advocacy, interactive testing insertion points, and creative visual balance."
+        },
+        operations: {
+          question: `Walk us through your release governance framework. How do you plan sprint retrospectives, calculate velocity statistics, and eliminate process blocks?`,
+          expectation: "Looks for Scrum sprint pacing, velocity calculation trackers, bottleneck diagnoses, and operational logistics."
+        }
+      },
+      mechanical: {
+        manager: {
+          question: `How do you design thermal-fluid or manufacturing assembly systems while balancing CAD tolerance precision with strict physical manufacturing limits as a ${roleName}?`,
+          expectation: "Measures CAD assembly depth, material thresholds, structural integrity tolerances, and design for manufacturing (DFM) principles."
+        },
+        technical: {
+          question: `Walk us through your Finite Element Analysis (FEA) or CFD modeling protocols. How do you validate simulation reliability against physical stress and boundary constraints?`,
+          expectation: "Tests mathematical modeling expertise, stress deformation calculations, ANSYS thermal behaviors validation, and sensor integrations."
+        },
+        founder: {
+          question: `Our custom rapid prototype physical molding has a structural flaw, and manufacturing starts in 3 days. How do you resolve this design error on the floor?`,
+          expectation: "Seeks raw hands-on physical troubleshooting, DFM corrections, machine shop agility, and fast manufacturing solutions."
+        },
+        hr: {
+          question: `When shop floor machinists or field technicians disagree with your theoretical CAD drawings, how do you seek constructive, practical alignment on the floor?`,
+          expectation: "Tests active listening, mechanical assembly ground truths, professional respect, collaborative troubleshooting posture."
+        },
+        creative: {
+          question: `How do you design the external industrial enclosure of a physical device to look visually premium, cinematic, and ergonomic while keeping thermals optimal?`,
+          expectation: "Evaluates industrial styling, premium form factors, ergonomic curves, material tactile choices, and heat sink integrations."
+        },
+        operations: {
+          question: `Describe your preventative maintenance planning, supply chain material tolerances auditing, and quality control systems to ensure zero defects.`,
+          expectation: "Checks production floor logistics, material traceabilities, predictive maintenance triggers, and safety procedures."
+        }
+      },
+      general: {
+        manager: {
+          question: `How do you systematically audit and organize legacy procedures or unstandardized steps to optimize delivery timelines as a ${roleName}?`,
+          expectation: "Shows structured systems thinking, active communication, standard digital tool proficiency, and operational clarity."
+        },
+        technical: {
+          question: `How do you utilize modern data-analysis trackers, scripting, or spreadsheet toolchains to diagnose a persistent timeline slowdown?`,
+          expectation: "Tests spreadsheet data formulas, reporting query tools, structural diagnostics, and software analytical power."
+        },
+        founder: {
+          question: `Tell us about a time you assumed complete operational control of a broken, leaderless system. How did you stabilize it and scale effectiveness?`,
+          expectation: "Measures extreme proactive ownership, dynamic resourcefulness, and stabilization velocity."
+        },
+        hr: {
+          question: `How do you setup sustainable, decent work-aligned schedules that protect team members from burnout while keeping productivity high?`,
+          expectation: "Aligns directly with SDG 8. Tests workplace ethics, workload balances, and sustainable team operations."
+        },
+        creative: {
+          question: `How do you design professional proposals, team decks, or stakeholder presentations to be exceptionally clear, structured, and visually polished?`,
+          expectation: "Checks typography pairing, narrative clarity, white-space design layout, and polished messaging guidelines."
+        },
+        operations: {
+          question: `Walk us through your process for auditing resource allocations to guarantee zero waste and rapid team logistics.`,
+          expectation: "Measures logistical coordination, inventory workflows, timeline auditing, and process optimizations."
+        }
+      }
+    };
+
+    const q2_field = q2_matrix[field as keyof typeof q2_matrix] || q2_matrix.general;
+    const q2_selected = q2_field[selectedPersona] || q2_field.manager;
+    q2 = {
+      id: "q2",
+      type: "technical/situational",
+      question: q2_selected.question,
+      expectation: q2_selected.expectation
+    };
+
+    // 3. Leadership Question based on Persona:
     const q3 = {
       id: "q3",
       type: "leadership/collaboration",
-      question: `Tell us about a time you mentored a peer or led a cross-functional workgroup to complete a demanding task. How did you foster support and transparency?`,
-      expectation: "Measures leadership potential, active listening, delegation wisdom, emotional intelligence, and shared accountability."
+      question: `Tell us about a time you mentored a peer or led a cross-functional workgroup to complete a demanding task as a ${roleName}. How did you foster support?`,
+      expectation: "Measures leadership potential, active listening, delegation wisdom, thermal emotional intelligence, and shared accountability."
     };
+    if (selectedPersona === "technical") {
+      q3.question = `How do you lead a team of engineers in planning a major code refactoring or manufacturing process overhaul without causing regression or timeline delays?`;
+      q3.expectation = "Evaluates architectural direction, risk mitigation, developer velocity balancing, and documentation frameworks.";
+    } else if (selectedPersona === "founder") {
+      q3.question = `How do you motivate your team members when they are exhausted, resource budgets are tight, and there is high risk of project failure?`;
+      q3.expectation = "Measures crisis motivation, inspirational charisma, extreme purpose alignment, and transparent team resilience.";
+    } else if (selectedPersona === "hr") {
+      q3.question = `Describe how you establish active peer-feedback loops, psychological safety, and diverse career development options matching SDG 8 metrics on your team.`;
+      q3.expectation = "Tests structured team-care programs, performance coaching systems, workspace ethics, and human development alignment.";
+    } else if (selectedPersona === "creative") {
+      q3.question = `How do you run visual critique and brainstorming sessions to elevate visual standards while keeping designers energized and free of defensive egos?`;
+      q3.expectation = "Looks for visual facilitation methodology, constructive feedback structures, creative empowerment, and stylistic consistency.";
+    } else if (selectedPersona === "operations") {
+      q3.question = `How do you delegate task responsibilities across a hybrid workforce and setup automated task check-ins to make sure milestones are completed on time?`;
+      q3.expectation = "Measures delegation frameworks, CRM/Asana card automation workflows, sprint metrics pacing, and daily standups logistics.";
+    }
 
+    // 4. Growth/Composure Question based on Persona:
     const q4 = {
       id: "q4",
       type: "confidence/growth",
-      question: `How do you handle severe constructive feedback or flat rejection of your proposal or deliverables as a ${roleName}? Detail your emotional recovery and learning plan.`,
+      question: `How do you handle severe constructive feedback or flat rejection of your proposal or deliverables as a ${roleName}? Detail your emotional recovery plan.`,
       expectation: "Tests self-awareness, active improvement habits, lack of defensiveness, emotional composure, and long-term vocational growth."
     };
+    if (selectedPersona === "technical") {
+      q4.question = `When your technical system proposal is rejected in favor of an alternate stack by another engineer, how do you handle the technical trade-offs and transition?`;
+      q4.expectation = "Measures lack of stack dogmatism, objectiveness, collaboration, and adherence to company engineering consensus.";
+    } else if (selectedPersona === "founder") {
+      q4.question = `Our company's active performance metrics dropped by 40% after our recent release, and stakeholders are panicking. What is your hour-by-hour recovery plan?`;
+      q4.expectation = "Tests extreme emotional resilience, fast diagnostics, speed of action, and composure under severe, existential market stress.";
+    } else if (selectedPersona === "hr") {
+      q4.question = `Describe a personal professional failure or career roadblock that forced you to systematically retrain and transform your career focus. What did you learn?`;
+      q4.expectation = "Reveals absolute self-honesty, growth mindset, active vocational retraining habits, and psychological maturity.";
+    } else if (selectedPersona === "creative") {
+      q4.question = `When a detailed design proposal fails to convert after shipping, how do you evaluate the aesthetic vs. functional user gaps?`;
+      q4.expectation = "Tests metric-driven design diagnostics, product audit procedures, lack of emotional aesthetic attachment, and user-centered feedback iterations.";
+    } else if (selectedPersona === "operations") {
+      q4.question = `When a critical vendor or platform integration fails completely, ruining your timeline delivery targets, how do you rebuild process boundaries?`;
+      q4.expectation = "Evaluates contingency plan structures, redundancy operations, vendor relationship management, and timeline mitigation.";
+    }
 
-    return [q1, q2Completed, q3, q4];
+    return [q1, q2, q3, q4];
   };
 
   // Helper keyword analyzer
@@ -796,6 +1066,15 @@ Opportunity-Fit Goals: ${goals || "Sustainable workspace, continuous personal de
         { display: "Milestone Tracking", patterns: ["milestone", "roadmap", "delivery", "schedules"] },
         { display: "Leadership & Coaching", patterns: ["mentor", "guided", "led", "facilitated", "empower"] },
         { display: "Distributed Sync", patterns: ["distributed", "remote", "slack", "notion", "async"] }
+      ],
+      mechanical: [
+        { display: "SOLIDWORKS Assemblies", patterns: ["solidworks", "cad", "modeling", "assembly", "parametric"] },
+        { display: "Stress & Thermal FEA", patterns: ["fea", "ansys", "stress", "thermal", "cfd", "simulation", "boundary"] },
+        { display: "Tolerances & GD&T", patterns: ["gd&t", "tolerance", "geometric dimensioning", "clearance", "precision"] },
+        { display: "Pneumatics/Fluid Mechanics", patterns: ["pneumatic", "hydraulic", "valve", "sensor", "actuator", "fluid", "flow"] },
+        { display: "DFM Optimization", patterns: ["dfm", "design for manufacturing", "machinery", "fabrication", "lifecycle"] },
+        { display: "Validation Testing", patterns: ["testing", "prototype", "benchmarking", "tensile", "fatigue", "audit"] },
+        { display: "Industrial Coordination", patterns: ["supplier", "vendor", "shop floor", "machinist", "field", "procurement"] }
       ],
       general: [
         { display: "Actionable Results", patterns: ["achieved", "result", "outcome", "metrics", "success"] },
@@ -850,7 +1129,8 @@ Opportunity-Fit Goals: ${goals || "Sustainable workspace, continuous personal de
           userAnswer: userText,
           expectation,
           role: targetRole,
-          type: targetField
+          type: targetField,
+          persona: selectedPersona
         })
       });
 
@@ -2225,26 +2505,155 @@ The candidate commits to present only authentic, original, and true historic eve
               )}
 
               {/* TAB 4: INTERVIEW PREP */}
-              {activeTab === "interview" && (
-                <div className="p-6 rounded-2xl border border-zinc-900 bg-zinc-950/20 space-y-8 animate-fadeIn text-left max-w-full">
-                  
-                  <div className="space-y-2">
-                    <div className="flex gap-2 items-center">
-                      <span className="px-2 py-0.5 rounded bg-indigo-500/15 text-indigo-400 font-sans font-semibold uppercase tracking-wider text-[9px]">
-                        Chapter 5: Professional Interview intelligence
-                      </span>
-                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-ping" />
-                    </div>
-                    <h3 className="text-white text-xl font-display font-medium leading-none">
-                      Dynamic Recruiter Mentorship Sandbox
-                    </h3>
-                    <p className="text-zinc-500 text-xs sm:text-sm font-sans font-light leading-relaxed max-w-2xl">
-                      Traditional interviews test narrative posturing and metric evidence representation. Use this sandbox to draft, analyze, and refine response parameters under active coaching feedback rules.
-                    </p>
-                  </div>
+              {activeTab === "interview" && (() => {
+                const RECRUITER_PERSONAS = [
+                  {
+                    id: "manager",
+                    name: "Elena Rostova",
+                    title: "Hiring Manager",
+                    focus: "Systems design, team resource flow, trade-off balances, and STAR logic accuracy",
+                    initials: "ER",
+                    color: "from-blue-500 to-indigo-600 bg-blue-500/10 text-indigo-400 border-indigo-500/30",
+                    badgeColor: "bg-indigo-500/15 text-indigo-400 border-indigo-500/20"
+                  },
+                  {
+                    id: "technical",
+                    name: "Alex Chen",
+                    title: "Technical Lead Recruiter",
+                    focus: "Strict technical stacks checking, runtime bottleneck optimization metrics, physical FEA detail",
+                    initials: "AC",
+                    color: "from-purple-500 to-pink-500 bg-purple-500/10 text-purple-400 border-purple-500/30",
+                    badgeColor: "bg-purple-500/15 text-purple-400 border-purple-500/20"
+                  },
+                  {
+                    id: "founder",
+                    name: "Sarah Jenkins",
+                    title: "Seed Startup Founder",
+                    focus: "Unprecedented delivery velocity, hands-on debugging, extreme ownership, zero budget growth loops",
+                    initials: "SJ",
+                    color: "from-amber-400 to-orange-500 bg-amber-500/10 text-amber-400 border-amber-500/30",
+                    badgeColor: "bg-amber-500/15 text-amber-400 border-amber-500/20"
+                  },
+                  {
+                    id: "hr",
+                    name: "Michael Vance",
+                    title: "Principal Corporate HR Analyst",
+                    focus: "High cultural safety alignment, stakeholder synchronization, conflict mitigation, Decent Work (SDG 8)",
+                    initials: "MV",
+                    color: "from-teal-400 to-emerald-500 bg-emerald-500/10 text-emerald-450 border-emerald-500/30",
+                    badgeColor: "bg-emerald-500/15 text-emerald-400 border-emerald-500/20"
+                  },
+                  {
+                    id: "creative",
+                    name: "Marcus Sterling",
+                    title: "Global Creative Director",
+                    focus: "Visual layout integrity, user aesthetics, UI token consistencies, high product delight standards",
+                    initials: "MS",
+                    color: "from-rose-400 to-red-500 bg-rose-500/10 text-rose-400 border-rose-500/30",
+                    badgeColor: "bg-rose-500/15 text-rose-400 border-rose-500/20"
+                  },
+                  {
+                    id: "operations",
+                    name: "Diana Kim",
+                    title: "Director of Systems Operations",
+                    focus: "Daily workflow throughput optimization, task delegation metrics, automation systems and playbooks",
+                    initials: "DK",
+                    color: "from-cyan-400 to-sky-500 bg-cyan-500/10 text-cyan-400 border-cyan-500/30",
+                    badgeColor: "bg-cyan-500/15 text-cyan-400 border-cyan-500/20"
+                  }
+                ];
 
-                  {/* Questions simulation panel */}
-                  <div className="space-y-8">
+                return (
+                  <div className="p-6 rounded-2xl border border-zinc-900 bg-zinc-950/20 space-y-8 animate-fadeIn text-left max-w-full">
+                    
+                    <div className="space-y-2">
+                      <div className="flex gap-2 items-center">
+                        <span className="px-2 py-0.5 rounded bg-indigo-500/15 text-indigo-400 font-sans font-semibold uppercase tracking-wider text-[9px]">
+                          Chapter 5: Professional Interview intelligence
+                        </span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-ping" />
+                      </div>
+                      <h3 className="text-white text-xl font-display font-medium leading-none">
+                        Dynamic Recruiter Mentorship Sandbox
+                      </h3>
+                      <p className="text-zinc-500 text-xs sm:text-sm font-sans font-light leading-relaxed max-w-2xl">
+                        Traditional interviews test narrative posturing and metric evidence representation. Use this sandbox to draft, analyze, and refine response parameters under active coaching feedback rules.
+                      </p>
+                    </div>
+
+                    {/* Recruiter Persona Selection Seat */}
+                    <div className="space-y-4 p-5 rounded-3xl border border-zinc-900 bg-zinc-950/40 shadow-xl">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-900 pb-3">
+                        <div className="space-y-0.5">
+                          <h4 className="text-zinc-200 text-xs font-semibold uppercase tracking-wider font-sans flex items-center gap-1.5">
+                            <span className="text-indigo-400">👤</span>
+                            <span>Choose Active Interviewer Seat</span>
+                          </h4>
+                          <p className="text-zinc-500 text-[10.5px] font-sans font-light">
+                            Each recruiter evaluates candidates through a different lens and prioritization bias, producing unique scoring limits and critique focus.
+                          </p>
+                        </div>
+                        <span className="px-2.5 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-mono text-[9px] uppercase tracking-wider block shrink-0 self-start sm:self-center">
+                          Active Biased Lens: {selectedPersona.toUpperCase()}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {RECRUITER_PERSONAS.map((person) => {
+                          const isSelected = selectedPersona === person.id;
+                          return (
+                            <div
+                              key={person.id}
+                              onClick={() => {
+                                setSelectedPersona(person.id);
+                              }}
+                              className={`p-3.5 rounded-2xl border transition-all duration-300 cursor-pointer flex gap-3 text-left items-start select-none hover:bg-zinc-900/40 relative overflow-hidden ${
+                                isSelected 
+                                  ? "bg-zinc-900/80 border-indigo-500/50 shadow-lg shadow-indigo-500/[0.03]" 
+                                  : "bg-zinc-950/25 border-zinc-900"
+                              }`}
+                            >
+                              {isSelected && (
+                                <div className="absolute right-0 top-0 w-8 h-8 flex items-center justify-center bg-indigo-500/10 rounded-bl-xl text-indigo-400 font-bold text-xs">
+                                  ✓
+                                </div>
+                              )}
+
+                              {/* Bullet Avatar Monogram with styled ring */}
+                              <div className="w-10 h-10 rounded-full shrink-0 flex items-center justify-center text-xs font-bold font-sans tracking-wide relative border border-white/5 shadow-inner"
+                                style={{
+                                  background: isSelected 
+                                    ? `radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(168, 85, 247, 0.15) 100%)` 
+                                    : `rgba(24, 24, 27, 0.4)`
+                                }}
+                              >
+                                <span className={isSelected ? "text-indigo-450 text-indigo-400 font-semibold" : "text-zinc-500"}>
+                                  {person.initials}
+                                </span>
+                                <span className={`absolute -right-0.5 -bottom-0.5 w-3 h-3 rounded-full border border-zinc-950 ${
+                                  isSelected ? "bg-emerald-500 animate-pulse" : "bg-zinc-650"
+                                }`} />
+                              </div>
+
+                              <div className="space-y-0.5">
+                                <h5 className={`text-xs font-semibold leading-tight ${isSelected ? "text-white" : "text-zinc-400"}`}>
+                                  {person.name}
+                                </h5>
+                                <p className="text-[10px] text-zinc-500 font-medium leading-none">
+                                  {person.title}
+                                </p>
+                                <p className="text-[9.5px] text-zinc-600 leading-snug max-w-[220px] pt-1 pt-0.5">
+                                  <strong className="text-zinc-500 font-medium">Core Bias:</strong> {person.focus}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Questions simulation panel */}
+                    <div className="space-y-8">
                     {getQuestionsForActiveProfile().map((q, qidx) => {
                       const userAnsValue = interviewAnswers[q.id] || "";
                       const reviewObj = interviewResults[q.id];
@@ -2269,12 +2678,14 @@ The candidate commits to present only authentic, original, and true historic eve
                                 <span className="text-[10px] text-zinc-550 font-sans uppercase">Assess Posture:</span>
                                 <span className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold ${
                                   reviewObj.score >= 88 
-                                    ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-450 text-emerald-400" 
+                                    ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400" 
                                     : reviewObj.score >= 75 
-                                    ? "bg-indigo-500/10 border border-indigo-550/20 text-indigo-300"
-                                    : "bg-amber-500/10 border border-amber-500/20 text-amber-550 text-amber-500"
+                                    ? "bg-indigo-500/10 border border-indigo-500/20 text-indigo-300"
+                                    : reviewObj.score >= 50
+                                    ? "bg-amber-500/10 border border-amber-500/20 text-amber-500"
+                                    : "bg-rose-500/10 border border-rose-500/20 text-rose-450 text-rose-400"
                                 }`}>
-                                  {reviewObj.score}% {reviewObj.score >= 88 ? "EXECUTIVE" : reviewObj.score >= 75 ? "PROFICIENT" : "DEVELOPING"}
+                                  {reviewObj.score}% {reviewObj.score >= 88 ? "EXECUTIVE" : reviewObj.score >= 75 ? "PROFICIENT" : reviewObj.score >= 50 ? "DEVELOPING" : "CRITICAL/WEAK"}
                                 </span>
                               </div>
                             )}
@@ -2420,8 +2831,62 @@ The candidate commits to present only authentic, original, and true historic eve
                             // STAGE 2: COACH FEEDBACK RATING DISPLAY
                             <div className="space-y-6 animate-fadeIn py-1">
                               
+                              {/* Recruiter Persona & Mood status board */}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+                                <div className="p-4 rounded-2xl bg-zinc-950/40 border border-zinc-900 flex gap-3.5 items-center">
+                                  <div className="w-11 h-11 rounded-full shrink-0 flex items-center justify-center text-xs font-mono font-bold border border-white/5 bg-indigo-500/10 text-indigo-400">
+                                    {((reviewObj.personaLabel || selectedPersona) === "manager" && "ER") ||
+                                     ((reviewObj.personaLabel || selectedPersona) === "technical" && "AC") ||
+                                     ((reviewObj.personaLabel || selectedPersona) === "founder" && "SJ") ||
+                                     ((reviewObj.personaLabel || selectedPersona) === "hr" && "MV") ||
+                                     ((reviewObj.personaLabel || selectedPersona) === "creative" && "MS") ||
+                                     ((reviewObj.personaLabel || selectedPersona) === "operations" && "DK") || "ER"}
+                                  </div>
+                                  <div className="space-y-0.5">
+                                    <span className="text-[9px] uppercase font-bold tracking-widest text-zinc-500 block">
+                                      Interviewer in Seat
+                                    </span>
+                                    <h5 className="text-white text-xs font-semibold">
+                                      {((reviewObj.personaLabel || selectedPersona) === "manager" && "Elena Rostova") ||
+                                       ((reviewObj.personaLabel || selectedPersona) === "technical" && "Alex Chen") ||
+                                       ((reviewObj.personaLabel || selectedPersona) === "founder" && "Sarah Jenkins") ||
+                                       ((reviewObj.personaLabel || selectedPersona) === "hr" && "Michael Vance") ||
+                                       ((reviewObj.personaLabel || selectedPersona) === "creative" && "Marcus Sterling") ||
+                                       ((reviewObj.personaLabel || selectedPersona) === "operations" && "Diana Kim") || "Elena Rostova"}
+                                    </h5>
+                                    <p className="text-[10px] text-zinc-500 leading-none">
+                                      {((reviewObj.personaLabel || selectedPersona) === "manager" && "Hiring Manager") ||
+                                       ((reviewObj.personaLabel || selectedPersona) === "technical" && "Technical Lead Recruiter") ||
+                                       ((reviewObj.personaLabel || selectedPersona) === "founder" && "Seed Startup Founder") ||
+                                       ((reviewObj.personaLabel || selectedPersona) === "hr" && "Principal Corporate HR Analyst") ||
+                                       ((reviewObj.personaLabel || selectedPersona) === "creative" && "Global Creative Director") ||
+                                       ((reviewObj.personaLabel || selectedPersona) === "operations" && "Director of Systems Operations") || "Hiring Manager"}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="p-4 rounded-2xl bg-zinc-950/40 border border-zinc-900 flex flex-col justify-center">
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-[9px] uppercase font-bold tracking-widest text-zinc-550 block">
+                                      Interviewer Mood State
+                                    </span>
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold ${getRecruiterMoodConfig(reviewObj.recruiterMood).color}`}>
+                                      {getRecruiterMoodConfig(reviewObj.recruiterMood).label}
+                                    </span>
+                                  </div>
+                                  <p className="text-zinc-400 text-[10.5px] font-sans font-light mt-1.5 leading-snug">
+                                    {getRecruiterMoodConfig(reviewObj.recruiterMood).alertText}
+                                  </p>
+                                </div>
+                              </div>
+
                               {/* Glowing overall summary */}
-                              <div className="p-4 rounded-2xl bg-indigo-500/[0.02] border border-indigo-500/10 space-y-2 text-left">
+                              <div className="p-4 rounded-2xl border space-y-2 text-left"
+                                style={{
+                                  backgroundColor: getRecruiterMoodConfig(reviewObj.recruiterMood).bgGlow,
+                                  borderColor: reviewObj.score >= 88 ? "rgba(16, 185, 129, 0.15)" : reviewObj.score >= 75 ? "rgba(99, 102, 241, 0.15)" : reviewObj.score >= 50 ? "rgba(245, 158, 11, 0.15)" : "rgba(239, 68, 68, 0.15)"
+                                }}
+                              >
                                 <span className="text-[9px] uppercase font-bold tracking-widest text-indigo-300 block">
                                   PersonaIQ Mentor Diagnosis
                                 </span>
@@ -2467,15 +2932,31 @@ The candidate commits to present only authentic, original, and true historic eve
                                 </div>
                               </div>
 
+                              {/* Recommended Polished Refined Upgrading Model Answer box */}
+                              {reviewObj.refinedAnswer && (
+                                <div className="p-4.5 rounded-2xl bg-indigo-550/[0.02] border border-indigo-500/15 text-xs text-left space-y-2.5 relative overflow-hidden">
+                                  <div className="absolute right-0 top-0 w-24 h-24 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 rounded-full blur-xl" />
+                                  <span className="text-[9.5px] uppercase font-mono tracking-widest text-indigo-300 block font-bold">
+                                    🌟 Recommended Polished Response Upgrading Model
+                                  </span>
+                                  <p className="text-zinc-200 font-sans leading-relaxed italic font-light relative z-10 text-[11px] sm:text-xs">
+                                    "{reviewObj.refinedAnswer}"
+                                  </p>
+                                  <span className="text-[9.5px] text-zinc-550 block font-sans">
+                                    Synthesized to project maximum STAR metrics structure and passive to active verb translations.
+                                  </span>
+                                </div>
+                              )}
+
                               {/* Structured strengths, weaknesses and gaps lists */}
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 
                                 {/* Strengths found */}
-                                <div className="p-4 rounded-xl bg-emerald-500/[0.015] border border-emerald-500/10 space-y-2">
+                                <div className="p-4 rounded-xl bg-emerald-500/[0.015] border border-emerald-500/10 space-y-2 text-left">
                                   <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-400 font-sans block">
                                     PROVEN PROFESSIONAL SIGNALS:
                                   </span>
-                                  <ul className="space-y-1.5 text-xs text-zinc-400 font-light list-disc pl-4 leading-relaxed">
+                                  <ul className="space-y-1.5 text-xs text-zinc-400 font-light list-disc pl-4 leading-relaxed/6">
                                     {(reviewObj.strengths || ["Maintained grammatically clear professional vocabulary expression."]).map((s, idx) => (
                                       <li key={idx}>{s}</li>
                                     ))}
@@ -2483,11 +2964,11 @@ The candidate commits to present only authentic, original, and true historic eve
                                 </div>
 
                                 {/* Improvement advice */}
-                                <div className="p-4 rounded-xl bg-amber-500/[0.01] border border-amber-500/10 space-y-2">
+                                <div className="p-4 rounded-xl bg-amber-500/[0.01] border border-amber-500/10 space-y-2 text-left">
                                   <span className="text-[10px] uppercase font-bold tracking-widest text-amber-500 font-sans block">
                                     GROWTH POSITIONING ADVICE:
                                   </span>
-                                  <ul className="space-y-1.5 text-xs text-zinc-400 font-light list-disc pl-4 leading-relaxed">
+                                  <ul className="space-y-1.5 text-xs text-zinc-400 font-light list-disc pl-4 leading-relaxed/6">
                                     {(reviewObj.weakPoints || ["Add additional metrics details to solidify outcomes value."]).map((w, idx) => (
                                       <li key={idx}>{w}</li>
                                     ))}
@@ -2534,7 +3015,7 @@ The candidate commits to present only authentic, original, and true historic eve
                   </div>
 
                 </div>
-              )}
+              ); })()}
 
               {/* TAB 5: ROADMAP */}
               {activeTab === "roadmap" && (
