@@ -31,6 +31,12 @@ import { AnalysisResult } from "../types";
 import { exportEmployabilityPDF, exportEmployabilityDOCX } from "../utils/pdfGenerator";
 import { classifyResume } from "../utils/classificationEngine";
 
+// Import compiled assets directly to ensure absolute production stability
+import femaleDeveloperImg from "../assets/images/female_developer_split_1779635078522.png";
+import maleLeaderImg from "../assets/images/male_leader_split_1779635118718.png";
+import femaleDesignerImg from "../assets/images/female_designer_split_1779635098841.png";
+import professionalPortraitImg from "../assets/images/professional_split_portrait_1779515079465.png";
+
 
 interface ProfileAnalyzerProps {
   onAnalysisComplete: (result: AnalysisResult) => void;
@@ -1393,26 +1399,26 @@ The candidate commits to present only authentic, original, and true historic eve
   const profileGender = activeAnalysis?.detectedGender || "neutral";
   const profileField = activeAnalysis?.detectedField || "general";
   
-  let dynamicPortrait = "/images/professional_split_portrait_1779515079465.png";
+  let dynamicPortrait = professionalPortraitImg;
   if (profileGender === "female") {
     if (profileField === "designer") {
-      dynamicPortrait = "/images/female_designer_split_1779635098841.png";
+      dynamicPortrait = femaleDesignerImg;
     } else {
-      dynamicPortrait = "/images/female_developer_split_1779635078522.png";
+      dynamicPortrait = femaleDeveloperImg;
     }
   } else if (profileGender === "male") {
     if (profileField === "marketing" || profileField === "management" || profileField === "general") {
-      dynamicPortrait = "/images/male_leader_split_1779635118718.png";
+      dynamicPortrait = maleLeaderImg;
     } else {
-      dynamicPortrait = "/images/professional_split_portrait_1779515079465.png";
+      dynamicPortrait = professionalPortraitImg;
     }
   } else {
     if (profileField === "designer") {
-      dynamicPortrait = "/images/female_designer_split_1779635098841.png";
+      dynamicPortrait = femaleDesignerImg;
     } else if (profileField === "marketing" || profileField === "management") {
-      dynamicPortrait = "/images/male_leader_split_1779635118718.png";
+      dynamicPortrait = maleLeaderImg;
     } else {
-      dynamicPortrait = "/images/female_developer_split_1779635078522.png";
+      dynamicPortrait = femaleDeveloperImg;
     }
   }
 
@@ -1999,7 +2005,7 @@ The candidate commits to present only authentic, original, and true historic eve
                     referrerPolicy="no-referrer"
                     onError={(e) => {
                       console.error(`[DIAGNOSTIC] Thumbnail error for: ${dynamicPortrait}`);
-                      (e.currentTarget as HTMLImageElement).src = "/images/professional_split_portrait_1779515079465.png";
+                      (e.currentTarget as HTMLImageElement).src = professionalPortraitImg;
                     }}
                   />
                   <div className="absolute inset-0 bg-indigo-550/5" />

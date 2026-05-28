@@ -2,6 +2,12 @@ import React, { useState, useEffect } from "react";
 import { ArrowRight, Sparkles, ShieldCheck, CheckCircle, Compass, Lightbulb } from "lucide-react";
 import { AnalysisResult } from "../types";
 
+// Import compiled assets directly to ensure absolute production stability
+import femaleDeveloperImg from "../assets/images/female_developer_split_1779635078522.png";
+import maleLeaderImg from "../assets/images/male_leader_split_1779635118718.png";
+import femaleDesignerImg from "../assets/images/female_designer_split_1779635098841.png";
+import professionalPortraitImg from "../assets/images/professional_split_portrait_1779515079465.png";
+
 interface HeroProps {
   onCtaClick: () => void;
   activeResult: AnalysisResult | null;
@@ -26,7 +32,7 @@ interface SlideItem {
 
 const SLIDES: SlideItem[] = [
   {
-    image: "/images/female_developer_split_1779635078522.png",
+    image: femaleDeveloperImg,
     leftLabel: "Uncertain Junior",
     rightLabel: "Systems Architect",
     recruiterPerception: "Technical ownership maps directly to modern engineering velocity metrics. Removing task list descriptions increases profile trust and strategic visibility.",
@@ -42,7 +48,7 @@ const SLIDES: SlideItem[] = [
     scoreBoost: 22
   },
   {
-    image: "/images/male_leader_split_1779635118718.png",
+    image: maleLeaderImg,
     leftLabel: "Task Operator",
     rightLabel: "Growth Director",
     recruiterPerception: "Relational metrics elevate leadership presence for enterprise recruiters, re-anchoring historical tasks into active business team growth sponsorship.",
@@ -58,7 +64,7 @@ const SLIDES: SlideItem[] = [
     scoreBoost: 18
   },
   {
-    image: "/images/female_designer_split_1779635098841.png",
+    image: femaleDesignerImg,
     leftLabel: "Aesthetic Executor",
     rightLabel: "Lead Architect",
     recruiterPerception: "Strategic design summaries elevate creative oversight and cross-functional leadership, replacing task-centric listings with product ownership metrics.",
@@ -74,7 +80,7 @@ const SLIDES: SlideItem[] = [
     scoreBoost: 24
   },
   {
-    image: "/images/professional_split_portrait_1779515079465.png",
+    image: professionalPortraitImg,
     leftLabel: "Executor Draft",
     rightLabel: "Strategic Sponsor",
     recruiterPerception: "Presenting accomplishments with quiet confidence removes immediate reading fatigue, elevating your perception from local 'Executor' to 'Strategic Sponsor'.",
@@ -106,10 +112,10 @@ export default function Hero({ onCtaClick, activeResult }: HeroProps) {
 
     // Preload all visuals before rendering to prevent blank frames
     const visualPaths = [
-      "/images/female_developer_split_1779635078522.png",
-      "/images/male_leader_split_1779635118718.png",
-      "/images/female_designer_split_1779635098841.png",
-      "/images/professional_split_portrait_1779515079465.png"
+      femaleDeveloperImg,
+      maleLeaderImg,
+      femaleDesignerImg,
+      professionalPortraitImg
     ];
 
     visualPaths.forEach((path) => {
@@ -170,42 +176,42 @@ export default function Hero({ onCtaClick, activeResult }: HeroProps) {
     const roleName = activeResult.detectedRoleName || "Impact Aligned Professional";
 
     // Matching locator using gender-aware logic
-    let matchedImg = "/images/professional_split_portrait_1779515079465.png";
+    let matchedImg = professionalPortraitImg;
     let leftLabel = "Draft Form";
     let rightLabel = "Reframed Mastery";
 
     if (gender === "female") {
       if (field === "designer") {
-        matchedImg = "/images/female_designer_split_1779635098841.png";
+        matchedImg = femaleDesignerImg;
         leftLabel = "Casual Creator";
         rightLabel = "Product Designer";
       } else {
-        matchedImg = "/images/female_developer_split_1779635078522.png";
+        matchedImg = femaleDeveloperImg;
         leftLabel = "Task Assistant";
         rightLabel = "Systems Builder";
       }
     } else if (gender === "male") {
       if (field === "marketing" || field === "management" || field === "general") {
-        matchedImg = "/images/male_leader_split_1779635118718.png";
+        matchedImg = maleLeaderImg;
         leftLabel = "Task Operator";
         rightLabel = "Tactical Strategist";
       } else {
-        matchedImg = "/images/professional_split_portrait_1779515079465.png";
+        matchedImg = professionalPortraitImg;
         leftLabel = "Local Executor";
         rightLabel = "Engineering Lead";
       }
     } else {
       // neutral defaults
       if (field === "designer") {
-        matchedImg = "/images/female_designer_split_1779635098841.png";
+        matchedImg = femaleDesignerImg;
         leftLabel = "Aesthetic Executor";
         rightLabel = "Interface Architect";
       } else if (field === "marketing" || field === "management") {
-        matchedImg = "/images/male_leader_split_1779635118718.png";
+        matchedImg = maleLeaderImg;
         leftLabel = "Task Operator";
         rightLabel = "Core Manager";
       } else {
-        matchedImg = "/images/female_developer_split_1779635078522.png";
+        matchedImg = femaleDeveloperImg;
         leftLabel = "Standard Dev";
         rightLabel = "Technical Lead";
       }
@@ -393,7 +399,7 @@ export default function Hero({ onCtaClick, activeResult }: HeroProps) {
                         onLoad={() => console.log(`[DIAGNOSTIC] Successfully rendered Slide Image: ${slide.image}`)}
                         onError={(e) => {
                           console.error(`[DIAGNOSTIC] Image fail. Loading fallback for: ${slide.image}`);
-                          (e.currentTarget as HTMLImageElement).src = "/images/professional_split_portrait_1779515079465.png";
+                          (e.currentTarget as HTMLImageElement).src = professionalPortraitImg;
                         }}
                       />
                     </div>
@@ -402,10 +408,10 @@ export default function Hero({ onCtaClick, activeResult }: HeroProps) {
 
                 {/* Specific active dynamic fallback for exceptional analyzed cases */}
                 {isAnalyzed && ![
-                  "/images/female_developer_split_1779635078522.png",
-                  "/images/male_leader_split_1779635118718.png",
-                  "/images/female_designer_split_1779635098841.png",
-                  "/images/professional_split_portrait_1779515079465.png"
+                  femaleDeveloperImg,
+                  maleLeaderImg,
+                  femaleDesignerImg,
+                  professionalPortraitImg
                 ].includes(currentSlide.image) && (
                   <div
                     className="absolute inset-0 w-full h-full z-10 transition-opacity duration-[850ms] ease-in-out"
@@ -418,7 +424,7 @@ export default function Hero({ onCtaClick, activeResult }: HeroProps) {
                       referrerPolicy="no-referrer"
                       onError={(e) => {
                         console.error(`[DIAGNOSTIC] Custom Image Load Failure: ${currentSlide.image}`);
-                        (e.currentTarget as HTMLImageElement).src = "/images/professional_split_portrait_1779515079465.png";
+                        (e.currentTarget as HTMLImageElement).src = professionalPortraitImg;
                       }}
                     />
                   </div>

@@ -616,6 +616,27 @@ app.post("/api/evaluate-interview", rateLimiter, async (req, res) => {
     return res.status(400).json({ error: "No student interview response was provided for validation." });
   }
 
+  // Intercept hopeless / weak / non-communicative answers for absolute realistic scoring guarantees
+  const lowerAnswer = userAnswer.toLowerCase().trim();
+  const wordCount = userAnswer.trim().split(/\s+/).filter(Boolean).length;
+  const isHopeless = lowerAnswer === "" ||
+                     lowerAnswer.includes("don't know") ||
+                     lowerAnswer.includes("no idea") ||
+                     lowerAnswer.includes("no clue") ||
+                     lowerAnswer.includes("dunno") ||
+                     lowerAnswer.includes("not sure") ||
+                     lowerAnswer.includes("maybe") ||
+                     lowerAnswer.includes("can't say") ||
+                     lowerAnswer.includes("no experience") ||
+                     wordCount < 6;
+
+  if (isHopeless) {
+    return res.json({
+      ...getInterviewSimulationResponse(question, userAnswer, expectation, role, type, persona),
+      ownershipMetadata
+    });
+  }
+
   // Fallback if Gemini key is missing
   if (!ai) {
     return res.json({
